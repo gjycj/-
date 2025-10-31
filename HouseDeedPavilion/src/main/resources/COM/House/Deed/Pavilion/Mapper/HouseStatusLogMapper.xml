@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="COM.House.Deed.Pavilion.Mapper.HouseStatusLogMapper">
+
+    <!-- 通用结果集映射 -->
+    <resultMap id="BaseResultMap" type="COM.House.Deed.Pavilion.Entity.HouseStatusLog">
+        <id column="id" property="id"/>
+        <result column="house_id" property="houseId"/>
+        <result column="old_status" property="oldStatus"/>
+        <result column="new_status" property="newStatus"/>
+        <result column="reason" property="reason"/>
+        <result column="operated_by" property="operatedBy"/>
+        <result column="operated_at" property="operatedAt"/>
+    </resultMap>
+
+    <!-- 1. 新增状态变更记录 -->
+    <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.HouseStatusLog"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO house_status_log (
+            house_id,
+            old_status,
+            new_status,
+            reason,
+            operated_by,
+            operated_at
+        ) VALUES (
+                     #{houseId},
+                     #{oldStatus},
+                     #{newStatus},
+                     #{reason},
+                     #{operatedBy},
+                     #{operatedAt}
+                 )
+    </insert>
+
+    <!-- 2. 根据ID查询 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+            id,
+            house_id,
+            old_status,
+            new_status,
+            reason,
+            operated_by,
+            operated_at
+        FROM house_status_log
+        WHERE id = #{id}
+    </select>
+
+    <!-- 3. 根据房源ID查询所有状态变更记录 -->
+    <select id="selectByHouseId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+        id,
+        house_id,
+        old_status,
+        new_status,
+        reason,
+        operated_by,
+        operated_at
+        FROM house_status_log
+        WHERE house_id = #{houseId}
+        ORDER BY operated_at DESC  <!-- 按操作时间倒序，最新变更优先 -->
+    </select>
+
+    <!-- 4. 多条件分页查询状态变更记录 -->
+    <select id="selectByCondition" parameterType="COM.House.Deed.Pavilion.DTO.HouseStatusLogQueryDTO" resultMap="BaseResultMap">
+        SELECT
+        id,
+        house_id,
+        old_status,
+        new_status,
+        reason,
+        operated_by,
+        operated_at
+        FROM house_status_log
+        <where>
+            <if test="houseId != null">AND house_id = #{houseId}</if>
+            <if test="oldStatus != null">AND old_status = #{oldStatus}</if>
+            <if test="newStatus != null">AND new_status = #{newStatus}</if>
+            <if test="operatedBy != null">AND operated_by = #{operatedBy}</if>
+            <if test="operatedAtStart != null">AND operated_at &gt;= #{operatedAtStart}</if>
+            <if test="operatedAtEnd != null">AND operated_at &lt;= #{operatedAtEnd}</if>
+        </where>
+        ORDER BY operated_at DESC
+    </select>
+
+</mapper>

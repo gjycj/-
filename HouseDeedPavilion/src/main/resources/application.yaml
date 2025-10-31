@@ -41,9 +41,14 @@ spring:
         session-stat-max-count: 1000
   application:
     name: HouseDeedPavilion
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false # 忽略未知字段，不抛出异常
 mybatis:
   # 指定 Mapper XML 文件的位置（支持通配符）
-  mapper-locations: classpath:COM/Deed/Pavilion/Mapper/*.xml
+  mapper-locations: classpath:COM/House/Deed/Pavilion/Mapper/*.xml
+  # 自定义TypeHandler所在的包路径（确保包含上面两个处理器）
+  type-handlers-package: COM.House.Deed.Pavilion.Handler
   configuration:
     map-underscore-to-camel-case: true # 开启下划线转驼峰映射
 pagehelper:

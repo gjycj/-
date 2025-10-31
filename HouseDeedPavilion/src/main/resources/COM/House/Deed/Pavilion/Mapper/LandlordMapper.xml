@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 命名空间与Mapper接口全路径一致 -->
+<mapper namespace="COM.House.Deed.Pavilion.Mapper.LandlordMapper">
+
+    <!-- 通用结果集映射（复用字段映射规则） -->
+    <resultMap id="BaseResultMap" type="COM.House.Deed.Pavilion.Entity.Landlord">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="phone" property="phone"/>
+        <result column="id_card" property="idCard"/>
+        <result column="gender" property="gender"/>
+        <result column="address" property="address"/>
+        <result column="remark" property="remark"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="updated_by" property="updatedBy"/>
+    </resultMap>
+
+    <!-- 1. 新增房东信息 -->
+    <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.Landlord"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO landlord (
+            name,
+            phone,
+            id_card,
+            gender,
+            address,
+            remark,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        ) VALUES (
+                     #{name},
+                     #{phone},
+                     #{idCard},
+                     #{gender},
+                     #{address},
+                     #{remark},
+                     #{createdAt},
+                     #{updatedAt},
+                     #{createdBy},
+                     #{updatedBy}
+                 )
+    </insert>
+
+    <!-- 2. 根据ID查询房东信息 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+            id,
+            name,
+            phone,
+            id_card,
+            gender,
+            address,
+            remark,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        FROM landlord
+        WHERE id = #{id}
+    </select>
+
+    <!-- 3. 根据联系电话查询（唯一性校验） -->
+    <select id="selectByPhone" resultMap="BaseResultMap">
+        SELECT
+        id,
+        phone
+        FROM landlord
+        WHERE phone = #{phone}
+        <if test="excludeId != null">
+            AND id != #{excludeId}  <!-- 更新时排除自身 -->
+        </if>
+    </select>
+
+    <!-- 4. 根据ID更新房东信息 -->
+    <update id="updateById" parameterType="COM.House.Deed.Pavilion.Entity.Landlord">
+        UPDATE landlord
+        <set>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="phone != null and phone != ''">phone = #{phone},</if>
+            <if test="idCard != null and idCard != ''">id_card = #{idCard},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="address != null and address != ''">address = #{address},</if>
+            <if test="remark != null and remark != ''">remark = #{remark},</if>
+            <if test="updatedBy != null">updated_by = #{updatedBy},</if>
+            updated_at = #{updatedAt}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 5. 多条件分页查询 -->
+    <select id="selectByCondition" parameterType="COM.House.Deed.Pavilion.DTO.LandlordQueryDTO" resultMap="BaseResultMap">
+        SELECT
+        id,
+        name,
+        phone,
+        id_card,
+        gender,
+        address,
+        remark,
+        created_at,
+        updated_at,
+        created_by,
+        updated_by
+        FROM landlord
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                AND phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="idCard != null and idCard != ''">
+                AND id_card LIKE CONCAT('%', #{idCard}, '%')
+            </if>
+            <if test="gender != null">AND gender = #{gender}</if>
+        </where>
+        <!-- 排序规则：按更新时间倒序 -->
+        ORDER BY updated_at DESC
+    </select>
+
+    <!-- 6. 根据姓名模糊查询（分页） -->
+    <select id="selectByName" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT
+        id,
+        name,
+        phone,
+        id_card,
+        gender,
+        address,
+        remark,
+        created_at,
+        updated_at,
+        created_by,
+        updated_by
+        FROM landlord
+        WHERE name LIKE CONCAT('%', #{name}, '%')
+        <!-- 排序规则：按姓名升序 -->
+        ORDER BY name ASC
+    </select>
+
+</mapper>

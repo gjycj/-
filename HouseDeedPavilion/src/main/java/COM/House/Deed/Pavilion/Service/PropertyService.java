@@ -115,6 +115,9 @@ public class PropertyService {
         return getPropertyPageResult(propertyPage);
     }
 
+    /**
+     * 封装楼盘分页结果（复用逻辑）
+     */
     private PageResult<Property> getPropertyPageResult(Page<Property> propertyPage) {
         PageResult<Property> pageResult = new PageResult<>();
         pageResult.setList(propertyPage.getResult());

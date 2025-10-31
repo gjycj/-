@@ -16,7 +16,6 @@ import jakarta.validation.Valid;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.Objects;
 
 @RestController("/property")
@@ -26,7 +25,7 @@ public class PropertyController {
     @Resource
     private PropertyService propertyService;
 
-    @GetMapping("/list/condition")
+    @GetMapping("/properties/condition")
     @Operation(
             summary = "根据多条件查询楼盘",
             description = "支持名称模糊查询、物业类型精确匹配、建成年代范围等条件组合，默认分页",
@@ -49,7 +48,7 @@ public class PropertyController {
         }
     }
 
-    @GetMapping("/detail/{id}")
+    @GetMapping("/properties/{id}")
     @Operation(
             summary = "根据ID查询楼盘详情",
             description = "通过楼盘ID获取完整信息（包括名称、地址、物业类型等）",
@@ -83,7 +82,7 @@ public class PropertyController {
      * @param bindingResult 参数校验结果
      * @return 统一响应体
      */
-    @PostMapping("/add")
+    @PostMapping("/addProperty")
     @Operation(
             summary = "新增楼盘",
             description = "添加新的楼盘信息，需传入必填字段（名称、地址、物业类型等）",
@@ -130,7 +129,7 @@ public class PropertyController {
      * @param propertyType 物业类型（可选）
      * @return 分页结果
      */
-    @GetMapping("/list")
+    @GetMapping("/properties")
     @Operation(
             summary = "分页查询楼盘",
             description = "支持按物业类型筛选，默认查询第1页，每页10条数据",
@@ -159,7 +158,7 @@ public class PropertyController {
         }
     }
 
-    @PutMapping("/update")
+    @PutMapping("/updateProperty")
     @Operation(
             summary = "更新楼盘信息",
             description = "根据ID更新楼盘信息，只需传递需要修改的字段（ID为必填）",

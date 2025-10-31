@@ -22,4 +22,5 @@ public class PageResult<T> {
 
     @Schema(description = "每页条数", example = "10")
     private Integer pageSize;
+
 }

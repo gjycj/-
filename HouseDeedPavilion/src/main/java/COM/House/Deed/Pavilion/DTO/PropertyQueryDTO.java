@@ -3,6 +3,10 @@ package COM.House.Deed.Pavilion.DTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+/**
+ * 楼盘查询条件DTO
+ * 用于多条件分页查询楼盘
+ */
 @Data
 @Schema(description = "楼盘查询条件DTO")
 public class PropertyQueryDTO {

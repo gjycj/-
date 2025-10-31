@@ -68,6 +68,11 @@
             <version>2.8.6</version> <!-- 请核实并使用当前最新稳定版 -->
         </dependency>
         <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis-typehandlers-jsr310</artifactId>
+            <version>1.0.2</version> <!-- 与MyBatis版本兼容 -->
+        </dependency>
+        <dependency>
             <groupId>io.springfox</groupId>
             <artifactId>springfox-boot-starter</artifactId>
             <version>3.0.0</version>

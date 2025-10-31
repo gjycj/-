@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="COM.House.Deed.Pavilion.Mapper.HouseLandlordMapper">
+
+    <!-- 通用结果集映射 -->
+    <resultMap id="BaseResultMap" type="COM.House.Deed.Pavilion.Entity.HouseLandlord">
+        <id column="id" property="id"/>
+        <result column="house_id" property="houseId"/>
+        <result column="landlord_id" property="landlordId"/>
+        <result column="is_main" property="isMain"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="created_by" property="createdBy"/>
+    </resultMap>
+
+    <!-- 1. 新增关联关系 -->
+    <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.HouseLandlord"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO house_landlord (
+            house_id,
+            landlord_id,
+            is_main,
+            created_at,
+            created_by
+        ) VALUES (
+                     #{houseId},
+                     #{landlordId},
+                     #{isMain},
+                     #{createdAt},
+                     #{createdBy}
+                 )
+    </insert>
+
+    <!-- 2. 根据ID删除关联 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM house_landlord WHERE id = #{id}
+    </delete>
+
+    <!-- 3. 根据房源ID和房东ID删除关联 -->
+    <delete id="deleteByHouseAndLandlord">
+        DELETE FROM house_landlord
+        WHERE house_id = #{houseId} AND landlord_id = #{landlordId}
+    </delete>
+
+    <!-- 4. 根据ID查询关联记录 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+            id,
+            house_id,
+            landlord_id,
+            is_main,
+            created_at,
+            created_by
+        FROM house_landlord
+        WHERE id = #{id}
+    </select>
+
+    <!-- 5. 检查房源与房东的关联是否已存在 -->
+    <select id="selectByHouseAndLandlord" resultMap="BaseResultMap">
+        SELECT
+            id,
+            house_id,
+            landlord_id,
+            is_main,
+            created_at,
+            created_by
+        FROM house_landlord
+        WHERE house_id = #{houseId} AND landlord_id = #{landlordId}
+    </select>
+
+    <!-- 6. 根据房源ID查询关联的房东ID列表 -->
+    <select id="selectLandlordIdsByHouseId" parameterType="java.lang.Long" resultType="java.lang.Long">
+        SELECT landlord_id FROM house_landlord
+        WHERE house_id = #{houseId}
+    </select>
+
+    <!-- 7. 根据房源ID查询关联的房东详情（关联landlord表） -->
+    <select id="selectLandlordsByHouseId" parameterType="java.lang.Long" resultType="COM.House.Deed.Pavilion.Entity.Landlord">
+        SELECT
+            l.id,
+            l.name,
+            l.phone,
+            l.id_card,
+            l.gender,
+            l.address,
+            l.remark
+        FROM house_landlord hl
+                 INNER JOIN landlord l ON hl.landlord_id = l.id
+        WHERE hl.house_id = #{houseId}
+        ORDER BY hl.is_main DESC, l.name ASC
+    </select>
+
+    <!-- 8. 多条件分页查询关联关系 -->
+    <select id="selectByCondition" parameterType="COM.House.Deed.Pavilion.DTO.HouseLandlordQueryDTO" resultMap="BaseResultMap">
+        SELECT
+        id,
+        house_id,
+        landlord_id,
+        is_main,
+        created_at,
+        created_by
+        FROM house_landlord
+        <where>
+            <if test="houseId != null">AND house_id = #{houseId}</if>
+            <if test="landlordId != null">AND landlord_id = #{landlordId}</if>
+            <if test="isMain != null">AND is_main = #{isMain}</if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 命名空间与Mapper接口全路径一致 -->
+<mapper namespace="COM.House.Deed.Pavilion.Mapper.AgentMapper">
+
+    <!-- 通用结果集映射（复用字段映射规则） -->
+    <resultMap id="BaseResultMap" type="COM.House.Deed.Pavilion.Entity.Agent">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="employee_id" property="employeeId"/>
+        <result column="phone" property="phone"/>
+        <result column="store_id" property="storeId"/>
+        <result column="position" property="position"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 1. 新增经纪人 -->
+    <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.Agent"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO agent (
+            name,
+            employee_id,
+            phone,
+            store_id,
+            position,
+            status,
+            created_at,
+            updated_at
+        ) VALUES (
+                     #{name},
+                     #{employeeId},
+                     #{phone},
+                     #{storeId},
+                     #{position},
+                     #{status},
+                     #{createdAt},
+                     #{updatedAt}
+                 )
+    </insert>
+
+    <!-- 2. 根据ID查询经纪人 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+            id,
+            name,
+            employee_id,
+            phone,
+            store_id,
+            position,
+            status,
+            created_at,
+            updated_at
+        FROM agent
+        WHERE id = #{id}
+    </select>
+
+    <!-- 3. 根据工号查询（唯一性校验） -->
+    <select id="selectByEmployeeId" resultMap="BaseResultMap">
+        SELECT
+        id,
+        employee_id
+        FROM agent
+        WHERE employee_id = #{employeeId}
+        <if test="excludeId != null">
+            AND id != #{excludeId}  <!-- 更新时排除自身 -->
+        </if>
+    </select>
+
+    <!-- 4. 根据ID更新经纪人 -->
+    <update id="updateById" parameterType="COM.House.Deed.Pavilion.Entity.Agent">
+        UPDATE agent
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="employeeId != null">employee_id = #{employeeId},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="storeId != null">store_id = #{storeId},</if>
+            <if test="position != null">position = #{position},</if>
+            <if test="status != null">status = #{status},</if>
+            updated_at = #{updatedAt}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 5. 多条件分页查询 -->
+    <select id="selectByCondition" parameterType="COM.House.Deed.Pavilion.DTO.AgentQueryDTO" resultMap="BaseResultMap">
+        SELECT
+        id,
+        name,
+        employee_id,
+        phone,
+        store_id,
+        position,
+        status,
+        created_at,
+        updated_at
+        FROM agent
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="employeeId != null and employeeId != ''">
+                AND employee_id LIKE CONCAT('%', #{employeeId}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                AND phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="storeId != null">AND store_id = #{storeId}</if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+        <!-- 排序规则：按更新时间倒序 -->
+        ORDER BY updated_at DESC
+    </select>
+
+    <!-- 6. 根据门店ID分页查询 -->
+    <select id="selectByStoreId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+        id,
+        name,
+        employee_id,
+        phone,
+        store_id,
+        position,
+        status,
+        created_at,
+        updated_at
+        FROM agent
+        WHERE store_id = #{storeId}
+        <!-- 排序规则：按姓名升序 -->
+        ORDER BY name ASC
+    </select>
+
+</mapper>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="COM.House.Deed.Pavilion.Mapper.VisitRecordMapper">
+
+    <!-- 通用结果集映射 -->
+    <resultMap id="BaseResultMap" type="COM.House.Deed.Pavilion.Entity.VisitRecord">
+        <id column="id" property="id"/>
+        <result column="house_id" property="houseId"/>
+        <result column="customer_id" property="customerId"/>
+        <result column="agent_id" property="agentId"/>
+        <result column="visit_time" property="visitTime"/>
+        <result column="feedback" property="feedback"/>
+        <result column="next_plan" property="nextPlan"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="updated_by" property="updatedBy"/>
+    </resultMap>
+
+    <!-- 1. 新增带看记录 -->
+    <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.VisitRecord"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO visit_record (
+        house_id,
+        customer_id,
+        agent_id,
+        visit_time,
+        feedback,
+        next_plan,
+        created_at,
+        updated_at,
+        created_by,
+        updated_by
+        ) VALUES (
+        #{houseId},
+        #{customerId},
+        #{agentId},
+        #{visitTime},
+        #{feedback},
+        #{nextPlan},
+        NOW(),
+        NOW(),
+        #{createdBy},
+        #{createdBy}
+        )
+        <!-- 新增时更新人=创建人 -->
+    </insert>
+
+    <!-- 2. 根据ID查询 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+            id,
+            house_id,
+            customer_id,
+            agent_id,
+            visit_time,
+            feedback,
+            next_plan,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        FROM visit_record
+        WHERE id = #{id}
+    </select>
+
+    <!-- 3. 多条件分页查询 -->
+    <select id="selectByCondition" parameterType="COM.House.Deed.Pavilion.DTO.VisitRecordQueryDTO" resultMap="BaseResultMap">
+        SELECT
+        id,
+        house_id,
+        customer_id,
+        agent_id,
+        visit_time,
+        feedback,
+        next_plan,
+        created_at,
+        updated_at,
+        created_by,
+        updated_by
+        FROM visit_record
+        <where>
+            <if test="id != null">AND id = #{id}</if>
+            <if test="houseId != null">AND house_id = #{houseId}</if>
+            <if test="customerId != null">AND customer_id = #{customerId}</if>
+            <if test="agentId != null">AND agent_id = #{agentId}</if>
+            <if test="visitTimeStart != null">AND visit_time &gt;= #{visitTimeStart}</if>
+            <if test="visitTimeEnd != null">AND visit_time &lt;= #{visitTimeEnd}</if>
+        </where>
+        ORDER BY visit_time DESC  <!-- 按带看时间倒序，最新记录优先 -->
+    </select>
+
+    <!-- 4. 根据ID更新 -->
+    <update id="updateById" parameterType="COM.House.Deed.Pavilion.Entity.VisitRecord">
+        UPDATE visit_record
+        <set>
+            <if test="houseId != null">house_id = #{houseId},</if>
+            <if test="customerId != null">customer_id = #{customerId},</if>
+            <if test="agentId != null">agent_id = #{agentId},</if>
+            <if test="visitTime != null">visit_time = #{visitTime},</if>
+            <if test="feedback != null">feedback = #{feedback},</if>
+            <if test="nextPlan != null">next_plan = #{nextPlan},</if>
+            updated_at = NOW(),
+            updated_by = #{updatedBy}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 5. 根据ID删除 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM visit_record
+        WHERE id = #{id}
+    </delete>
+
+</mapper>

@@ -39,7 +39,8 @@ public class Result<T> {
     public static <T> Result<T> fail(String msg) {
         Result<T> result = new Result<>();
         result.setCode(500);
-        result.setMsg(msg);
+        result.setMsg(msg);  // 确保msg被正确赋值
+        result.setData(null);
         return result;
     }
 
