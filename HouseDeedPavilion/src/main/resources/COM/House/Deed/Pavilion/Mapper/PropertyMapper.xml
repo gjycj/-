@@ -98,4 +98,16 @@
         WHERE id = #{id}
     </update>
 
+    <!-- 根据ID删除楼盘记录 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM property
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 已补充的：统计指定楼盘下的楼栋数量（用于删除校验） -->
+    <select id="countByPropertyId" parameterType="java.lang.Long" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM building
+        WHERE property_id = #{propertyId}
+    </select>
+
 </mapper>

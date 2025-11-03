@@ -87,6 +87,10 @@
         ORDER BY property_id ASC, name ASC
     </select>
 
+    <select id="countByPropertyId" parameterType="Long" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM building WHERE property_id = #{propertyId}
+    </select>
+
     <!-- 根据ID更新楼栋 -->
     <update id="updateById" parameterType="COM.House.Deed.Pavilion.Entity.Building">
         UPDATE building
@@ -102,10 +106,10 @@
         WHERE id = #{id}
     </update>
 
-    <!-- 根据ID删除楼栋 -->
+
+    <!-- 根据ID删除楼栋记录 -->
     <delete id="deleteById" parameterType="java.lang.Long">
-        DELETE
-        FROM building
+        DELETE FROM building
         WHERE id = #{id}
     </delete>
 

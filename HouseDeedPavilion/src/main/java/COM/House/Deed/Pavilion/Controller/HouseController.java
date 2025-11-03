@@ -30,6 +30,32 @@ public class HouseController {
     private HouseService houseService;
 
     /**
+     * 删除房源（自动备份）
+     */
+    @PostMapping("/delete/{id}")
+    @Operation(
+            summary = "删除房源并自动备份",
+            description = "删除前会备份到house_backup表，需传递操作人ID和删除原因"
+    )
+    public Result<?> deleteHouse(
+            @Parameter(description = "房源ID", required = true, example = "20001")
+            @PathVariable Long id,
+            @Parameter(description = "操作人ID", required = true, example = "1001")
+            @RequestParam Long operatorId,
+            @Parameter(description = "删除原因（可选）", example = "房源已出售")
+            @RequestParam(required = false) String deleteReason
+    ) {
+        try {
+            houseService.deleteHouse(id, operatorId, deleteReason);
+            return Result.success("房源删除成功（已自动备份）");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        } catch (Exception e) {
+            return Result.fail("系统异常");
+        }
+    }
+
+    /**
      * 新增房源接口
      * @param house 房源信息（包含所属楼栋ID、门牌号等必填字段）
      * @param bindingResult 参数校验结果

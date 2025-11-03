@@ -1,6 +1,6 @@
 package COM.House.Deed.Pavilion.Handler;
 
-import COM.House.Deed.Pavilion.Entity.Enum.HouseStatusEnum;
+import COM.House.Deed.Pavilion.Enum.HouseStatusEnum;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import java.sql.CallableStatement;

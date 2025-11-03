@@ -222,5 +222,58 @@ public class BuildingController {
         }
     }
 
+    /**
+     * 根据ID删除楼栋（删除前自动创建备份）
+     * @param id 楼栋ID（待删除）
+     * @param operatorId 操作人ID（当前登录用户）
+     * @param deleteReason 删除原因（必填，用于备份记录）
+     * @return 统一响应体（含备份ID，便于后续恢复）
+     */
+    @DeleteMapping("/buildings/{id}")
+    @Operation(
+            summary = "删除楼栋（自动备份）",
+            description = "删除前会自动创建楼栋备份，支持后续恢复；需提供删除原因用于审计",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "删除成功（已创建备份）",
+                            content = @Content(schema = @Schema(implementation = Result.class))),
+                    @ApiResponse(responseCode = "400", description = "参数错误（如ID为空、删除原因未填写）",
+                            content = @Content(schema = @Schema(implementation = Result.class))),
+                    @ApiResponse(responseCode = "500", description = "系统错误或楼栋不存在",
+                            content = @Content(schema = @Schema(implementation = Result.class)))
+            }
+    )
+    public Result<String> deleteBuilding(
+            @Parameter(description = "楼栋ID（待删除）", required = true, example = "2001")
+            @PathVariable Long id,
+
+            @Parameter(description = "操作人ID（当前登录用户）", required = true, example = "1001")
+            @RequestParam Long operatorId,
+
+            @Parameter(description = "删除原因（必填，如“信息错误”“重复录入”）", required = true, example = "楼栋信息错误，需重新创建")
+            @RequestParam String deleteReason
+    ) {
+        // 1. 参数校验（基础非空校验）
+        if (id == null || id <= 0) {
+            return Result.paramError("楼栋ID无效（不能为空或负数）");
+        }
+        if (operatorId == null || operatorId <= 0) {
+            return Result.paramError("操作人ID无效");
+        }
+        if (deleteReason == null || deleteReason.trim().isEmpty()) {
+            return Result.paramError("删除原因不能为空");
+        }
+
+        try {
+            // 2. 调用Service删除（内部会先创建备份）
+            Long backupId = buildingService.deleteBuildingWithBackup(id, operatorId, deleteReason);
+            return Result.success("楼栋删除成功，已创建备份（备份ID：" + backupId + "，可用于恢复）"
+            );
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        } catch (Exception e) {
+            return Result.fail("删除楼栋失败：系统异常，请联系管理员");
+        }
+    }
+
 }
 

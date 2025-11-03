@@ -1,7 +1,7 @@
 package COM.House.Deed.Pavilion.Entity;
 
-import COM.House.Deed.Pavilion.Entity.Enum.HouseStatusEnum;
-import COM.House.Deed.Pavilion.Entity.Enum.HouseTypeEnum;
+import COM.House.Deed.Pavilion.Enum.HouseStatusEnum;
+import COM.House.Deed.Pavilion.Enum.HouseTypeEnum;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;

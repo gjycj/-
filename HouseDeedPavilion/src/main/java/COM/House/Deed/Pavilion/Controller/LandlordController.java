@@ -1,7 +1,9 @@
 package COM.House.Deed.Pavilion.Controller;
 
+import COM.House.Deed.Pavilion.Constant.MessageConstant;
 import COM.House.Deed.Pavilion.DTO.LandlordQueryDTO;
 import COM.House.Deed.Pavilion.Entity.Landlord;
+import COM.House.Deed.Pavilion.Exception.BusinessException;
 import COM.House.Deed.Pavilion.Service.LandlordService;
 import COM.House.Deed.Pavilion.Utils.PageResult;
 import COM.House.Deed.Pavilion.Utils.Result;
@@ -233,4 +235,48 @@ public class LandlordController {
             return Result.fail("系统异常，请联系管理员");
         }
     }
+
+    /**
+     * 删除房东（自动备份，含关联房源校验）
+     * 流程：校验参数 → 调用Service删除（内部完成备份+关联校验）→ 返回结果
+     */
+    @DeleteMapping("/{id}")
+    @Operation(
+            summary = "删除房东信息",
+            description = "删除前会自动备份数据到landlord_backup表；若房东关联房源，会阻止删除并提示关联数量",
+            parameters = {
+                    @Parameter(name = "id", description = "房东ID", required = true, example = "3001"),
+                    @Parameter(name = "operatorId", description = "操作人ID（记录删除人）", required = true, example = "1001"),
+                    @Parameter(name = "deleteReason", description = "删除原因（可选，记录到备份表）", example = "房东信息错误")
+            }
+    )
+    public Result<String> deleteLandlord(
+            @PathVariable Long id,
+            @RequestParam Long operatorId,
+            @RequestParam(required = false) String deleteReason
+    ) {
+        try {
+            // 1. 基础参数校验（Controller层前置校验）
+            if (id == null || id <= 0) {
+                return Result.paramError(MessageConstant.LANDLORD_ID_INVALID);
+            }
+            if (operatorId == null || operatorId <= 0) {
+                return Result.paramError("操作人ID无效（必须为正整数）");
+            }
+
+            // 2. 调用Service执行删除（含备份和关联校验）
+            landlordService.deleteLandlordById(id, operatorId, deleteReason);
+
+            // 3. 返回成功结果
+            return Result.success(MessageConstant.DELETE_LANDLORD_SUCCESS);
+
+        } catch (BusinessException e) {
+            // 捕获业务异常（如关联房源、备份失败等）
+            return Result.fail(e.getMessage());
+        } catch (Exception e) {
+            // 捕获系统异常（如数据库错误）
+            return Result.fail("删除失败：系统异常，请联系管理员");
+        }
+    }
+
 }

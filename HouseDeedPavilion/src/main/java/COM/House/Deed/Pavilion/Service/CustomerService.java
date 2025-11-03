@@ -7,7 +7,7 @@ import COM.House.Deed.Pavilion.Entity.Customer;
 import COM.House.Deed.Pavilion.Entity.CustomerBackup;
 import COM.House.Deed.Pavilion.Mapper.CustomerBackupMapper;
 import COM.House.Deed.Pavilion.Mapper.CustomerMapper;
-import COM.House.Deed.Pavilion.Utils.CustomerConverter;
+import COM.House.Deed.Pavilion.Converter.CustomerConverter;
 import COM.House.Deed.Pavilion.Utils.PageResult;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;

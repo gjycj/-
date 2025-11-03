@@ -5,7 +5,7 @@ import COM.House.Deed.Pavilion.Entity.House;
 import COM.House.Deed.Pavilion.Entity.VisitRecordBackup;
 import COM.House.Deed.Pavilion.Mapper.*;
 import COM.House.Deed.Pavilion.Utils.PageResult;
-import COM.House.Deed.Pavilion.Utils.VisitRecordConverter;
+import COM.House.Deed.Pavilion.Converter.VisitRecordConverter;
 import COM.House.Deed.Pavilion.DTO.VisitRecordAddDTO;
 import COM.House.Deed.Pavilion.DTO.VisitRecordQueryDTO;
 import COM.House.Deed.Pavilion.DTO.VisitRecordUpdateDTO;

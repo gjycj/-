@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="COM.House.Deed.Pavilion.Mapper.BuildingBackupMapper">
+
+    <!-- 基础结果集映射：与BuildingBackup实体类字段一一对应 -->
+    <resultMap id="BaseResultMap" type="COM.House.Deed.Pavilion.Entity.BuildingBackup">
+        <id column="id" property="id"/>
+        <result column="original_id" property="originalId"/>
+        <result column="property_id" property="propertyId"/>
+        <result column="name" property="name"/>
+        <result column="total_floor" property="totalFloor"/>
+        <result column="unit_count" property="unitCount"/>
+        <result column="description" property="description"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="updated_by" property="updatedBy"/>
+        <result column="backup_time" property="backupTime"/>
+        <result column="delete_reason" property="deleteReason"/>
+        <result column="deleted_by" property="deletedBy"/>
+    </resultMap>
+
+    <!-- 1. 根据ID查询 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT * FROM building_backup
+        WHERE id = #{id}
+    </select>
+
+    <!-- 2. 根据原楼栋ID查询（查询某楼栋的所有备份） -->
+    <select id="selectByOriginalId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT * FROM building_backup
+        WHERE original_id = #{originalId}
+        ORDER BY backup_time DESC  <!-- 最新备份在前 -->
+    </select>
+
+    <!-- 3. 多条件分页查询 -->
+    <select id="selectByCondition" parameterType="COM.House.Deed.Pavilion.DTO.BuildingBackupQueryDTO" resultMap="BaseResultMap">
+        SELECT * FROM building_backup
+        <where>
+            <!-- 按原楼栋ID查询 -->
+            <if test="originalId != null">
+                AND original_id = #{originalId}
+            </if>
+            <!-- 按所属楼盘ID查询 -->
+            <if test="propertyId != null">
+                AND property_id = #{propertyId}
+            </if>
+            <!-- 按楼栋名称模糊查询 -->
+            <if test="nameLike != null and nameLike != ''">
+                AND name LIKE CONCAT('%', #{nameLike}, '%')
+            </if>
+            <!-- 按备份时间范围查询 -->
+            <if test="backupTimeStart != null">
+                AND backup_time >= #{backupTimeStart}
+            </if>
+            <if test="backupTimeEnd != null">
+                AND backup_time &lt;= #{backupTimeEnd}
+            </if>
+            <!-- 按删除人ID查询 -->
+            <if test="deletedBy != null">
+                AND deleted_by = #{deletedBy}
+            </if>
+        </where>
+        <!-- 默认按备份时间倒序（最新备份优先） -->
+        ORDER BY backup_time DESC
+    </select>
+
+    <!-- 4. 新增备份记录 -->
+    <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.BuildingBackup" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO building_backup (
+            original_id,
+            property_id,
+            name,
+            total_floor,
+            unit_count,
+            description,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by,
+            backup_time,
+            delete_reason,
+            deleted_by
+        ) VALUES (
+            #{originalId},
+            #{propertyId},
+            #{name},
+            #{totalFloor},
+            #{unitCount},
+            #{description},
+            #{createdAt},
+            #{updatedAt},
+            #{createdBy},
+            #{updatedBy},
+            #{backupTime},
+            #{deleteReason},
+            #{deletedBy}
+        )
+    </insert>
+
+    <!-- 5. 单个删除 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM building_backup
+        WHERE id = #{id}
+    </delete>
+
+
+</mapper>

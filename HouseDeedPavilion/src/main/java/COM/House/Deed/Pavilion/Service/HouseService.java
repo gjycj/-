@@ -5,7 +5,7 @@ import COM.House.Deed.Pavilion.DTO.HouseUpdateDTO;
 import COM.House.Deed.Pavilion.Entity.Agent;
 import COM.House.Deed.Pavilion.Entity.Building;
 import COM.House.Deed.Pavilion.Entity.House;
-import COM.House.Deed.Pavilion.Entity.Enum.HouseStatusEnum;
+import COM.House.Deed.Pavilion.Enum.HouseStatusEnum;
 import COM.House.Deed.Pavilion.Mapper.AgentMapper;
 import COM.House.Deed.Pavilion.Mapper.BuildingMapper;
 import COM.House.Deed.Pavilion.Mapper.HouseMapper;
@@ -31,6 +31,40 @@ public class HouseService {
     // 在HouseService中注入状态日志Service
     @Resource
     private HouseStatusLogService houseStatusLogService;
+
+    // 新增：注入备份服务
+    @Resource
+    private HouseBackupService houseBackupService;
+
+    /**
+     * 新增：删除房源（自动备份）
+     */
+    @Transactional
+    public void deleteHouse(Long houseId, Long operatorId, String deleteReason) {
+        // 1. 参数校验
+        if (houseId == null || houseId <= 0) {
+            throw new RuntimeException("房源ID无效");
+        }
+        if (operatorId == null || operatorId <= 0) {
+            throw new RuntimeException("操作人ID无效");
+        }
+
+        // 2. 查询原房源
+        House house = houseMapper.selectById(houseId);
+        if (house == null) {
+            throw new RuntimeException("房源不存在（ID：" + houseId + "）");
+        }
+
+        // 3. 创建备份
+        houseBackupService.createBackup(house, deleteReason, operatorId);
+
+        // 4. 执行删除
+        int rows = houseMapper.deleteById(houseId); // 需在HouseMapper中补充deleteById方法
+        if (rows != 1) {
+            throw new RuntimeException("删除房源失败");
+        }
+    }
+
 
     /**
      * 新增房源

@@ -21,6 +21,8 @@ public class BuildingService {
     private BuildingMapper buildingMapper;
     @Resource
     private PropertyMapper propertyMapper;
+    @Resource
+    private BuildingBackupService buildingBackupService; // 依赖备份服务
 
     /**
      * 根据ID更新楼栋信息
@@ -219,5 +221,35 @@ public class BuildingService {
 
         // 4. 封装分页结果
         return getBuildingPageResult(buildingPage);
+    }
+
+    /**
+     * 删除楼栋并自动创建备份（核心删除逻辑）
+     * @param buildingId 楼栋ID
+     * @param operatorId 操作人ID
+     * @param deleteReason 删除原因
+     * @return 备份记录ID
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Long deleteBuildingWithBackup(Long buildingId, Long operatorId, String deleteReason) {
+        // 1. 查询原楼栋是否存在
+        Building originalBuilding = buildingMapper.selectById(buildingId);
+        if (originalBuilding == null) {
+            throw new RuntimeException("楼栋不存在，无法删除，ID：" + buildingId);
+        }
+
+        // 2. 先创建备份（调用备份服务）
+        Long backupId = buildingBackupService.createBackup(originalBuilding, deleteReason, operatorId);
+        if (backupId == null) {
+            throw new RuntimeException("备份创建失败，无法执行删除操作");
+        }
+
+        // 3. 执行删除原楼栋
+        int deleteCount = buildingMapper.deleteById(buildingId);
+        if (deleteCount != 1) {
+            throw new RuntimeException("删除楼栋失败，ID：" + buildingId);
+        }
+
+        return backupId; // 返回备份ID，便于前端记录或后续恢复
     }
 }

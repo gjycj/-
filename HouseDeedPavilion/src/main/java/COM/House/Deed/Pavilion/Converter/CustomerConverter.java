@@ -1,4 +1,4 @@
-package COM.House.Deed.Pavilion.Utils;
+package COM.House.Deed.Pavilion.Converter;
 
 import COM.House.Deed.Pavilion.DTO.CustomerAddDTO;
 import COM.House.Deed.Pavilion.DTO.CustomerUpdateDTO;

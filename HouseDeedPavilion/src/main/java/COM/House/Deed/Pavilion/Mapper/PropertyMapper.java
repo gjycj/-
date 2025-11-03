@@ -43,4 +43,14 @@ public interface PropertyMapper {
      * @return 分页结果（包含当前页数据和分页信息）
      */
     Page<Property> selectByPage(@Param("propertyType") String propertyType);
+
+    /**
+     * 根据楼盘ID删除记录
+     * @param id 楼盘ID（原表主键）
+     * @return 影响行数（1=删除成功，0=无此记录）
+     */
+    int deleteById(Long id);
+
+    // 补充：之前在PropertyService中用到的关联校验校验方法（已补充）
+    int countByPropertyId(@Param("propertyId") Long propertyId);
 }

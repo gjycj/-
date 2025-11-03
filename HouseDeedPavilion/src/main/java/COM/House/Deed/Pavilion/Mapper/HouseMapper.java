@@ -41,6 +41,17 @@ public interface HouseMapper {
     );
 
     /**
+     * 统计同一楼栋下相同门牌号的有效房源数量（用于校验门牌号冲突）
+     * @param buildingId 楼栋ID
+     * @param houseNumber 门牌号
+     * @return 数量（0-无冲突，>0-有冲突）
+     */
+    Integer countByBuildingAndNumber(
+            @Param("buildingId") Long buildingId,
+            @Param("houseNumber") String houseNumber
+    );
+
+    /**
      * 根据ID更新房源信息
      *
      * @param house 包含ID和待更新字段的实体
@@ -63,4 +74,12 @@ public interface HouseMapper {
      * @return 分页的房源列表（Page对象）
      */
     Page<House> selectByBuildingId(@Param("buildingId") Long buildingId);
+
+    /**
+     * 物理删除房源（删除时调用，用于备份后删除原数据）
+     *
+     * @param id 房源ID
+     * @return 影响行数（1-成功，0-失败）
+     */
+    int deleteById(Long id);
 }

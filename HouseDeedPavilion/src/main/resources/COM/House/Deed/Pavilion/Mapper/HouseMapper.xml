@@ -226,4 +226,18 @@
         ORDER BY house_number ASC
     </select>
 
+    <!-- 统计同一楼栋下相同门牌号的有效房源数量 -->
+    <select id="countByBuildingAndNumber" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM house
+        WHERE building_id = #{buildingId}
+        AND house_number = #{houseNumber}
+        AND is_valid = 1  <!-- 只统计有效房源（避免已删除/无效的不影响） -->
+    </select>
+
+    <!-- 7. 物理删除 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM house WHERE id = #{id}
+    </delete>
+
 </mapper>

@@ -23,45 +23,41 @@
     <!-- 1. 新增房东信息 -->
     <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.Landlord"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO landlord (
-            name,
-            phone,
-            id_card,
-            gender,
-            address,
-            remark,
-            created_at,
-            updated_at,
-            created_by,
-            updated_by
-        ) VALUES (
-                     #{name},
-                     #{phone},
-                     #{idCard},
-                     #{gender},
-                     #{address},
-                     #{remark},
-                     #{createdAt},
-                     #{updatedAt},
-                     #{createdBy},
-                     #{updatedBy}
-                 )
+        INSERT INTO landlord (name,
+                              phone,
+                              id_card,
+                              gender,
+                              address,
+                              remark,
+                              created_at,
+                              updated_at,
+                              created_by,
+                              updated_by)
+        VALUES (#{name},
+                #{phone},
+                #{idCard},
+                #{gender},
+                #{address},
+                #{remark},
+                #{createdAt},
+                #{updatedAt},
+                #{createdBy},
+                #{updatedBy})
     </insert>
 
     <!-- 2. 根据ID查询房东信息 -->
     <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
-        SELECT
-            id,
-            name,
-            phone,
-            id_card,
-            gender,
-            address,
-            remark,
-            created_at,
-            updated_at,
-            created_by,
-            updated_by
+        SELECT id,
+               name,
+               phone,
+               id_card,
+               gender,
+               address,
+               remark,
+               created_at,
+               updated_at,
+               created_by,
+               updated_by
         FROM landlord
         WHERE id = #{id}
     </select>
@@ -95,7 +91,8 @@
     </update>
 
     <!-- 5. 多条件分页查询 -->
-    <select id="selectByCondition" parameterType="COM.House.Deed.Pavilion.DTO.LandlordQueryDTO" resultMap="BaseResultMap">
+    <select id="selectByCondition" parameterType="COM.House.Deed.Pavilion.DTO.LandlordQueryDTO"
+            resultMap="BaseResultMap">
         SELECT
         id,
         name,
@@ -143,6 +140,20 @@
         WHERE name LIKE CONCAT('%', #{name}, '%')
         <!-- 排序规则：按姓名升序 -->
         ORDER BY name ASC
+    </select>
+
+    <!-- 根据ID删除房东记录 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE
+        FROM landlord
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 可选：如果需要在删除前校验关联房源，可补充此SQL（与house_landlord表关联） -->
+    <select id="countHouseRelByLandlordId" parameterType="java.lang.Long" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM house_landlord
+        WHERE landlord_id = #{landlordId}
     </select>
 
 </mapper>

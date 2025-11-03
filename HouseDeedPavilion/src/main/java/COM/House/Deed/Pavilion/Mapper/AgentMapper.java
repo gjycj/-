@@ -63,4 +63,11 @@ public interface AgentMapper {
      * @return 分页的经纪人列表（Page对象）
      */
     Page<Agent> selectByStoreId(@Param("storeId") Long storeId);
+
+    /**
+     * 根据ID删除经纪人记录（物理删除）
+     * @param id 经纪人ID（agent表的id）
+     * @return 影响行数（1=删除成功）
+     */
+    int deleteById(Long id);
 }

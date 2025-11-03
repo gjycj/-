@@ -1,7 +1,7 @@
 package COM.House.Deed.Pavilion.Handler;
 
 // 房源房源类型的处理器
-import COM.House.Deed.Pavilion.Entity.Enum.HouseTypeEnum;
+import COM.House.Deed.Pavilion.Enum.HouseTypeEnum;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import java.sql.CallableStatement;

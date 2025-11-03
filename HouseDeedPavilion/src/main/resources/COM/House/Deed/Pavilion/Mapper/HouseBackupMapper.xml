@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="COM.House.Deed.Pavilion.Mapper.HouseBackupMapper">
+
+    <resultMap id="BaseResultMap" type="COM.House.Deed.Pavilion.Entity.HouseBackup">
+        <id column="id" property="id"/>
+        <result column="original_id" property="originalId"/>
+        <result column="building_id" property="buildingId"/>
+        <result column="house_number" property="houseNumber"/>
+        <result column="area" property="area"/>
+        <result column="price" property="price"/>
+        <result column="description" property="description"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="updated_by" property="updatedBy"/>
+        <result column="delete_reason" property="deleteReason"/>
+        <result column="deleted_at" property="deletedAt"/>
+        <result column="deleted_by" property="deletedBy"/>
+        <result column="backup_time" property="backupTime"/>
+        <result column="inner_area" property="innerArea"/>
+        <result column="total_floor" property="totalFloor"/>
+        <result column="orientation" property="orientation"/>
+        <result column="decoration" property="decoration"/>
+        <result column="owner_price" property="ownerPrice"/>
+        <result column="house_type" property="houseType"
+                typeHandler="COM.House.Deed.Pavilion.Handler.HouseTypeEnumHandler"/>
+        <result column="status" property="status"
+                typeHandler="COM.House.Deed.Pavilion.Handler.HouseStatusEnumHandler"/>
+    </resultMap>
+
+    <!-- 新增备份 -->
+    <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.HouseBackup">
+        INSERT INTO house_backup (
+        original_id,
+        building_id,
+        house_number,
+        layout,
+        area,
+        inner_area,  <!-- 补充inner_area -->
+        floor,
+        total_floor, <!-- 补充total_floor -->
+        orientation, <!-- 补充orientation -->
+        decoration,  <!-- 补充decoration -->
+        house_type,
+        price,
+        owner_price, <!-- 补充owner_price -->
+        status,
+        description,
+        agent_id,
+        created_at,
+        updated_at,
+        created_by,
+        updated_by,
+        delete_reason,
+        deleted_at,
+        deleted_by,
+        backup_time
+        ) VALUES (
+        #{originalId},
+        #{buildingId},
+        #{houseNumber},
+        #{layout},
+        #{area},
+        #{innerArea},  <!-- 对应实体的innerArea -->
+        #{floor},
+        #{totalFloor}, <!-- 对应实体的totalFloor -->
+        #{orientation}, <!-- 对应实体的orientation -->
+        #{decoration},  <!-- 对应实体的decoration -->
+        #{houseType},
+        #{price},
+        #{ownerPrice}, <!-- 对应实体的ownerPrice -->
+        #{status},
+        #{description},
+        #{agentId},
+        #{createdAt},
+        #{updatedAt},
+        #{createdBy},
+        #{updatedBy},
+        #{deleteReason},
+        #{deletedAt},
+        #{deletedBy},
+        #{backupTime}
+        )
+    </insert>
+
+    <!-- 根据备份ID查询 -->
+    <select id="selectById" parameterType="Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM house_backup
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据原房源ID查询 -->
+    <select id="selectByOriginalId" parameterType="Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM house_backup
+        WHERE original_id = #{originalId}
+    </select>
+
+    <!-- 多条件分页查询SQL -->
+    <select id="selectByCondition" parameterType="COM.House.Deed.Pavilion.DTO.HouseBackupQueryDTO" resultMap="BaseResultMap">
+        SELECT * FROM house_backup
+        <where>
+            <!-- 1. 原房源/楼栋ID精确匹配 -->
+            <if test="originalId != null">
+                AND original_id = #{originalId}
+            </if>
+            <if test="buildingId != null">
+                AND building_id = #{buildingId}
+            </if>
+
+            <!-- 2. 房源类型/状态（枚举类型，取code值匹配） -->
+            <if test="houseType != null">
+                AND house_type = #{houseType.code}
+            </if>
+            <if test="status != null">
+                AND status = #{status.code}
+            </if>
+
+            <!-- 3. 门牌号模糊查询 -->
+            <if test="houseNumberLike != null and houseNumberLike != ''">
+                AND house_number LIKE CONCAT('%', #{houseNumberLike}, '%')
+            </if>
+
+            <!-- 4. 删除时间范围查询 -->
+            <if test="deletedAtStart != null">
+                AND deleted_at >= #{deletedAtStart}
+            </if>
+            <if test="deletedAtEnd != null">
+                AND deleted_at &lt;= #{deletedAtEnd}
+            </if>
+
+            <!-- 5. 备份时间范围查询 -->
+            <if test="backupTimeStart != null">
+                AND backup_time >= #{backupTimeStart}
+            </if>
+            <if test="backupTimeEnd != null">
+                AND backup_time &lt;= #{backupTimeEnd}
+            </if>
+
+            <!-- 6. 操作人精确匹配 -->
+            <if test="deletedBy != null">
+                AND deleted_by = #{deletedBy}
+            </if>
+        </where>
+        <!-- 排序：默认按备份时间倒序（最新备份在前） -->
+        ORDER BY backup_time DESC
+    </select>
+
+    <!-- 删除备份（已存在的语句，确保与接口方法匹配） -->
+    <delete id="deleteById" parameterType="Long">
+        DELETE
+        FROM house_backup
+        WHERE id = #{id}
+    </delete>
+</mapper>

@@ -61,4 +61,14 @@ public interface LandlordMapper {
      * @return 分页的房东列表
      */
     Page<Landlord> selectByName(@Param("name") String name);
+
+    /**
+     * 根据房东ID删除原房东记录
+     * @param id 房东ID（landlord表主键）
+     * @return 影响行数（1=删除成功，0=无此记录）
+     */
+    int deleteById(Long id);
+
+    // 补充：用于删除前校验关联房源的方法（已在之前的关联表设计中提及，此处可复用）
+     int countHouseRelByLandlordId(@Param("landlordId") Long landlordId);
 }

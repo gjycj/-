@@ -2,6 +2,7 @@ package COM.House.Deed.Pavilion.Service;
 
 import COM.House.Deed.Pavilion.DTO.PropertyQueryDTO;
 import COM.House.Deed.Pavilion.Entity.Property;
+import COM.House.Deed.Pavilion.Mapper.BuildingMapper;
 import COM.House.Deed.Pavilion.Mapper.PropertyMapper;
 import COM.House.Deed.Pavilion.Utils.PageResult;
 import com.github.pagehelper.Page;
@@ -17,6 +18,12 @@ public class PropertyService {
 
     @Resource
     private PropertyMapper propertyMapper;
+
+    @Resource
+    private BuildingMapper buildingMapper; // 用于校验是否有关联楼栋
+
+    @Resource
+    private PropertyBackupService propertyBackupService;
 
     /**
      * 新增楼盘
@@ -147,5 +154,37 @@ public class PropertyService {
         }
 
         return property;
+    }
+
+    /**
+     * 删除楼盘并自动创建备份（含关联校验）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Long deletePropertyWithBackup(Long propertyId, Long operatorId, String deleteReason) {
+        // 1. 校验楼盘是否存在
+        Property original = propertyMapper.selectById(propertyId);
+        if (original == null) {
+            throw new RuntimeException("楼盘不存在，ID：" + propertyId);
+        }
+
+        // 2. 校验是否有关联楼栋（防止误删有子数据的楼盘）
+        int buildingCount = buildingMapper.countByPropertyId(propertyId); // 需在BuildingMapper中新增count方法
+        if (buildingCount > 0) {
+            throw new RuntimeException("楼盘下存在" + buildingCount + "栋楼栋，请先删除关联楼栋");
+        }
+
+        // 3. 创建备份
+        Long backupId = propertyBackupService.createBackup(original, deleteReason, operatorId);
+        if (backupId == null) {
+            throw new RuntimeException("备份创建失败，无法删除");
+        }
+
+        // 4. 删除原楼盘
+        int deleteCount = propertyMapper.deleteById(propertyId);
+        if (deleteCount != 1) {
+            throw new RuntimeException("删除楼盘失败");
+        }
+
+        return backupId;
     }
 }

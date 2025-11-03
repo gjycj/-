@@ -48,7 +48,7 @@ public class CustomerController {
     ) {
         try {
             Long customerId = customerService.addCustomer(addDTO);
-            return Result.success("新增客户成功");
+            return Result.success("新增" + customerId + "客户成功");
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {

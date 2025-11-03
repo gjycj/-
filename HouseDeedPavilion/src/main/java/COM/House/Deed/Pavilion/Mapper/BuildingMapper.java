@@ -63,4 +63,17 @@ public interface BuildingMapper {
      */
     int updateById(Building building);
 
+    /**
+     * 根据楼栋ID删除记录
+     * @param id 楼栋ID（原表主键）
+     * @return 影响行数（1=删除成功，0=无此记录）
+     */
+    int deleteById(Long id);
+
+    // 在BuildingMapper接口中新增
+    /**
+     * 统计指定楼盘下的楼栋数量（用于删除楼盘时的关联校验）
+     */
+    int countByPropertyId(@Param("propertyId") Long propertyId);
+
 }

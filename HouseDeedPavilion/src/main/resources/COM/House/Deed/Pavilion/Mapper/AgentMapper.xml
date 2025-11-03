@@ -21,39 +21,35 @@
     <!-- 1. 新增经纪人 -->
     <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.Agent"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO agent (
-            name,
-            employee_id,
-            phone,
-            store_id,
-            position,
-            status,
-            created_at,
-            updated_at
-        ) VALUES (
-                     #{name},
-                     #{employeeId},
-                     #{phone},
-                     #{storeId},
-                     #{position},
-                     #{status},
-                     #{createdAt},
-                     #{updatedAt}
-                 )
+        INSERT INTO agent (name,
+                           employee_id,
+                           phone,
+                           store_id,
+                           position,
+                           status,
+                           created_at,
+                           updated_at)
+        VALUES (#{name},
+                #{employeeId},
+                #{phone},
+                #{storeId},
+                #{position},
+                #{status},
+                #{createdAt},
+                #{updatedAt})
     </insert>
 
     <!-- 2. 根据ID查询经纪人 -->
     <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
-        SELECT
-            id,
-            name,
-            employee_id,
-            phone,
-            store_id,
-            position,
-            status,
-            created_at,
-            updated_at
+        SELECT id,
+               name,
+               employee_id,
+               phone,
+               store_id,
+               position,
+               status,
+               created_at,
+               updated_at
         FROM agent
         WHERE id = #{id}
     </select>
@@ -132,5 +128,12 @@
         <!-- 排序规则：按姓名升序 -->
         ORDER BY name ASC
     </select>
+
+    <!-- 根据ID删除经纪人记录 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE
+        FROM agent
+        WHERE id = #{id}
+    </delete>
 
 </mapper>

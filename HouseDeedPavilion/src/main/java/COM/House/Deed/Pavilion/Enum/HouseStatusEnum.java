@@ -1,7 +1,6 @@
-package COM.House.Deed.Pavilion.Entity.Enum;
+package COM.House.Deed.Pavilion.Enum;
 
 // 房源状态枚举（对应status字段）
-import jakarta.xml.bind.annotation.XmlEnumValue;
 import lombok.Getter;
 
 @Getter

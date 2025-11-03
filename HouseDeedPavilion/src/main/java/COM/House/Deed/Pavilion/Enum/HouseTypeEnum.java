@@ -1,4 +1,4 @@
-package COM.House.Deed.Pavilion.Entity.Enum;
+package COM.House.Deed.Pavilion.Enum;
 
 import lombok.Getter;
 

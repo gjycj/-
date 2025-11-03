@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
@@ -189,6 +190,47 @@ public class PropertyController {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
             return Result.fail("系统异常，请联系管理员");
+        }
+    }
+
+    /**
+     * 删除楼盘（删除前自动创建备份）
+     * 注意：若楼盘下有关联楼栋，需先删除楼栋（或配置级联删除）
+     */
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除楼盘（自动备份）", description = "删除前自动创建备份，支持后续恢复；需先删除关联楼栋")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "删除成功（已备份）"),
+            @ApiResponse(responseCode = "400", description = "参数错误或存在关联楼栋"),
+            @ApiResponse(responseCode = "500", description = "系统异常")
+    })
+    public Result<String> deleteProperty(
+            @Parameter(description = "楼盘ID（待删除）", required = true, example = "101")
+            @PathVariable Long id,
+            @Parameter(description = "操作人ID", required = true, example = "1001")
+            @RequestParam Long operatorId,
+            @Parameter(description = "删除原因（必填）", required = true, example = "楼盘信息错误")
+            @RequestParam String deleteReason
+    ) {
+        // 参数校验
+        if (id == null || id <= 0) {
+            return Result.paramError("楼盘ID无效");
+        }
+        if (operatorId == null || operatorId <= 0) {
+            return Result.paramError("操作人ID无效");
+        }
+        if (deleteReason == null || deleteReason.trim().isEmpty()) {
+            return Result.paramError("删除原因不能为空");
+        }
+
+        try {
+            // 调用Service：先备份，再删除
+            Long backupId = propertyService.deletePropertyWithBackup(id, operatorId, deleteReason);
+            return Result.success("楼盘删除成功，备份ID：" + backupId);
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage()); // 如“存在关联楼栋，无法删除”
+        } catch (Exception e) {
+            return Result.fail("删除失败：系统异常");
         }
     }
 }
