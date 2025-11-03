@@ -19,12 +19,4 @@ public class MessageConstant {
     public static final String DELETE_LANDLORD_FAIL = "删除房东记录失败";
     public static final String DELETE_LANDLORD_SUCCESS = "房东已删除，数据已备份";
 
-    // 经纪人备份相关
-    public static final String AGENT_NOT_FOUND = "经纪人不存在（ID：%s）";
-    public static final String AGENT_BACKUP_FAIL = "经纪人备份失败，删除终止";
-    public static final String AGENT_DELETE_FAIL = "删除经纪人记录失败";
-    public static final String AGENT_BACKUP_NOT_FOUND = "经纪人备份记录不存在（ID：%s）";
-    public static final String AGENT_ALREADY_EXISTS = "经纪人已存在（工号：%s），无法恢复";
-    public static final String AGENT_RECOVER_FAIL = "恢复经纪人记录失败";
-    public static final String AGENT_RECOVER_SUCCESS = "经纪人恢复成功，新ID：%s";
 }

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
+import net.sf.jsqlparser.statement.update.Update;
 
 import java.time.LocalDateTime;
 
@@ -76,7 +77,16 @@ public class Agent {
     private LocalDateTime updatedAt;
 
     /**
-     * 分组校验：区分新增和更新场景
+     * 创建人ID（操作人）
      */
-    public interface Update {}
+    @NotNull(message = "创建人ID不能为空")
+    @Schema(description = "创建该经纪人记录的操作人ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    private Long createdBy;
+
+    /**
+     * 最后更新人ID（操作人）
+     */
+    @NotNull(message = "更新人ID不能为空")
+    @Schema(description = "最后更新该经纪人记录的操作人ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    private Long updatedBy;
 }

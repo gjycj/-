@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
 <mapper namespace="COM.House.Deed.Pavilion.Mapper.AgentBackupMapper">
 
-    <!-- 基础字段映射（适配实体类与数据库列名） -->
+    <!-- 通用结果集映射 -->
     <resultMap id="BaseResultMap" type="COM.House.Deed.Pavilion.Entity.AgentBackup">
         <id column="id" property="id"/>
         <result column="original_id" property="originalId"/>
@@ -19,98 +21,54 @@
         <result column="deleted_by" property="deletedBy"/>
     </resultMap>
 
-    <!-- 通用查询字段（避免重复书写） -->
-    <sql id="Base_Column_List">
-        id, original_id, name, employee_id, phone, store_id, position, status,
-        created_at, updated_at, backup_time, delete_reason, deleted_by
-    </sql>
-
-
-    <!-- 1. 新增备份记录 -->
+    <!-- 新增备份记录 -->
     <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.AgentBackup" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO agent_backup (
-            original_id, name, employee_id, phone, store_id, position, status,
-            created_at, updated_at, backup_time, delete_reason, deleted_by
+        original_id,
+        name,
+        employee_id,
+        phone,
+        store_id,
+        position,
+        status,
+        created_at,
+        updated_at,
+        backup_time,
+        delete_reason,
+        deleted_by,
+        created_by,
+        updated_by
         ) VALUES (
-                     #{originalId}, #{name}, #{employeeId}, #{phone}, #{storeId}, #{position}, #{status},
-                     #{createdAt}, #{updatedAt}, #{backupTime}, #{deleteReason}, #{deletedBy}
-                 )
+        #{originalId},
+        #{name},
+        #{employeeId},
+        #{phone},
+        #{storeId},
+        #{position},
+        #{status},
+        #{createdAt},
+        #{updatedAt},
+        #{backupTime},
+        #{deleteReason},
+        #{deletedBy},
+        #{createdBy},
+        #{updatedBy}
+        )
     </insert>
 
-
-    <!-- 2. 根据备份ID查询 -->
-    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
-        SELECT
-        <include refid="Base_Column_List"/>
-        FROM agent_backup
-        WHERE id = #{id}
-    </select>
-
-
-    <!-- 3. 根据原经纪人ID查询 -->
-    <select id="selectByOriginalId" parameterType="java.lang.Long" resultMap="BaseResultMap">
-        SELECT
-        <include refid="Base_Column_List"/>
-        FROM agent_backup
-        WHERE original_id = #{originalId}
-        ORDER BY backup_time DESC -- 按备份时间倒序（最新备份在前）
-    </select>
-
-
-    <!-- 4. 按工号查询（工号唯一） -->
-    <select id="selectByEmployeeId" parameterType="java.lang.String" resultMap="BaseResultMap">
-        SELECT
-        <include refid="Base_Column_List"/>
-        FROM agent_backup
-        WHERE employee_id = #{employeeId}
-    </select>
-
-
-    <!-- 5. 多条件查询（支持分页） -->
-    <select id="selectByCondition" parameterType="COM.House.Deed.Pavilion.DTO.AgentBackupQueryDTO" resultMap="BaseResultMap">
-        SELECT
-        <include refid="Base_Column_List"/>
-        FROM agent_backup
-        <where>
-            <!-- 姓名模糊查询 -->
-            <if test="nameLike != null and nameLike != ''">
-                AND name LIKE CONCAT('%', #{nameLike}, '%')
-            </if>
-            <!-- 电话精确查询 -->
-            <if test="phone != null and phone != ''">
-                AND phone = #{phone}
-            </if>
-            <!-- 原经纪人ID查询 -->
-            <if test="originalId != null">
-                AND original_id = #{originalId}
-            </if>
-            <!-- 备份时间范围查询 -->
-            <if test="backupTimeStart != null">
-                AND backup_time >= #{backupTimeStart}
-            </if>
-            <if test="backupTimeEnd != null">
-                AND backup_time &lt;= #{backupTimeEnd}
-            </if>
-            <!-- 状态查询（删除时的状态） -->
-            <if test="status != null">
-                AND status = #{status}
-            </if>
-        </where>
-        ORDER BY backup_time DESC -- 默认按备份时间倒序
-    </select>
-
-
-    <!-- 6. 根据备份ID删除 -->
+    <!-- 根据备份ID删除备份 -->
     <delete id="deleteById" parameterType="java.lang.Long">
-        DELETE FROM agent_backup
-        WHERE id = #{id}
+        DELETE FROM agent_backup WHERE id = #{id}
     </delete>
 
+    <!-- 根据原经纪人ID查询备份 -->
+    <select id="selectByOriginalId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT * FROM agent_backup WHERE original_id = #{originalId}
+    </select>
 
-    <!-- 7. 批量删除过期备份 -->
-    <delete id="batchDeleteExpired" parameterType="java.lang.String">
-        DELETE FROM agent_backup
-        WHERE backup_time &lt; #{deadline}
-    </delete>
+    <!-- 根据备份ID查询备份 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT * FROM agent_backup WHERE id = #{id}
+    </select>
 
 </mapper>

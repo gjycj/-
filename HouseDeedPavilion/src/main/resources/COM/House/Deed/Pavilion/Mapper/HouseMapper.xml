@@ -109,6 +109,15 @@
         AND is_valid = 1  <!-- 只查询有效数据 -->
     </select>
 
+    <!-- HouseMapper.xml 中添加以下内容 -->
+    <!-- 统计指定经纪人的有效房源数量 -->
+    <select id="countByAgentIdAndValid" parameterType="java.lang.Long" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM house
+        WHERE agent_id = #{agentId}  <!-- 匹配经纪人ID -->
+        AND is_valid = 1  <!-- 只统计有效房源 -->
+    </select>
+
     <!-- 3. 根据楼栋ID和门牌号查询（唯一性校验） -->
     <select id="selectByBuildingIdAndHouseNumber" resultMap="BaseResultMap">
         SELECT
@@ -123,6 +132,7 @@
             AND id != #{excludeId}  <!-- 更新时排除自身 -->
         </if>
     </select>
+
 
     <!-- 4. 根据ID更新房源 -->
     <update id="updateById" parameterType="COM.House.Deed.Pavilion.Entity.House">

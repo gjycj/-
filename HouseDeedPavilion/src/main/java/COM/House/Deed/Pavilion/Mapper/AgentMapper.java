@@ -70,4 +70,15 @@ public interface AgentMapper {
      * @return 影响行数（1=删除成功）
      */
     int deleteById(Long id);
+
+    /**
+     * 根据工号统计经纪人数量（用于唯一性校验）
+     * @param employeeId 经纪人工号
+     * @param excludeId 排除的ID（更新时使用）
+     * @return 匹配的数量
+     */
+    Long countByEmployeeId(
+            @Param("employeeId") String employeeId,
+            @Param("excludeId") Long excludeId
+    );
 }

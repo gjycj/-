@@ -82,4 +82,11 @@ public interface HouseMapper {
      * @return 影响行数（1-成功，0-失败）
      */
     int deleteById(Long id);
+
+    /**
+     * 根据经纪人ID统计有效房源数量
+     * @param agentId 经纪人ID
+     * @return 有效房源数量
+     */
+    Integer countByAgentIdAndValid(@Param("agentId") Long agentId); // 添加@Param注解
 }

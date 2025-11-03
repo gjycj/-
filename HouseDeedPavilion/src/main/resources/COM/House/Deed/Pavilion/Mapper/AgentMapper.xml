@@ -19,24 +19,32 @@
     </resultMap>
 
     <!-- 1. 新增经纪人 -->
-    <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.Agent"
-            useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO agent (name,
-                           employee_id,
-                           phone,
-                           store_id,
-                           position,
-                           status,
-                           created_at,
-                           updated_at)
-        VALUES (#{name},
-                #{employeeId},
-                #{phone},
-                #{storeId},
-                #{position},
-                #{status},
-                #{createdAt},
-                #{updatedAt})
+    <insert id="insert" parameterType="COM.House.Deed.Pavilion.Entity.Agent" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO agent (
+        id,
+        name,
+        employee_id,
+        phone,
+        store_id,
+        position,
+        status,
+        created_at,
+        updated_at,
+        created_by,  <!-- 新增：创建人ID -->
+        updated_by   <!-- 新增：更新人ID（初始与创建人一致） -->
+        ) VALUES (
+        #{id},
+        #{name},
+        #{employeeId},
+        #{phone},
+        #{storeId},
+        #{position},
+        #{status},
+        #{createdAt},
+        #{updatedAt},
+        #{createdBy},  <!-- 绑定创建人ID参数 -->
+        #{updatedBy}   <!-- 绑定更新人ID参数 -->
+        )
     </insert>
 
     <!-- 2. 根据ID查询经纪人 -->
@@ -135,5 +143,15 @@
         FROM agent
         WHERE id = #{id}
     </delete>
+
+    <!-- 新增：根据工号统计数量 -->
+    <select id="countByEmployeeId" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM agent
+        WHERE employee_id = #{employeeId}
+        <if test="excludeId != null">
+            AND id != #{excludeId}  <!-- 恢复时无需排除，更新时使用 -->
+        </if>
+    </select>
 
 </mapper>
