@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.store.mapper.StoreMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.store.entity.Store">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="store_code" property="storeCode" />
+        <result column="store_name" property="storeName" />
+        <result column="region_id" property="regionId" />
+        <result column="address" property="address" />
+        <result column="manager_id" property="managerId" />
+        <result column="phone" property="phone" />
+        <result column="status" property="status" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, store_code, store_name, region_id, address, manager_id, phone, status, create_time, update_time
+    </sql>
+
+</mapper>

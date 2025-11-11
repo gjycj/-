@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.visitRecord.mapper.VisitRecordMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.visitRecord.entity.VisitRecord">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="house_id" property="houseId" />
+        <result column="customer_id" property="customerId" />
+        <result column="agent_id" property="agentId" />
+        <result column="visit_time" property="visitTime" />
+        <result column="visit_type" property="visitType" />
+        <result column="customer_feedback" property="customerFeedback" />
+        <result column="intention_level" property="intentionLevel" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, house_id, customer_id, agent_id, visit_time, visit_type, customer_feedback, intention_level, create_time
+    </sql>
+
+</mapper>

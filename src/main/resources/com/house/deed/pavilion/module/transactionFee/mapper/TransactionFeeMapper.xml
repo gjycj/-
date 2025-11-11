@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.transactionFee.mapper.TransactionFeeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.transactionFee.entity.TransactionFee">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="contract_id" property="contractId" />
+        <result column="fee_type" property="feeType" />
+        <result column="amount" property="amount" />
+        <result column="payer" property="payer" />
+        <result column="payment_status" property="paymentStatus" />
+        <result column="payment_time" property="paymentTime" />
+        <result column="remark" property="remark" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, contract_id, fee_type, amount, payer, payment_status, payment_time, remark, create_time
+    </sql>
+
+</mapper>

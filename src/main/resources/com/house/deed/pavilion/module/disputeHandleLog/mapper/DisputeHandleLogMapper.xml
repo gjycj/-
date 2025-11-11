@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.disputeHandleLog.mapper.DisputeHandleLogMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.disputeHandleLog.entity.DisputeHandleLog">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="dispute_id" property="disputeId" />
+        <result column="handle_time" property="handleTime" />
+        <result column="handler_id" property="handlerId" />
+        <result column="handler_name" property="handlerName" />
+        <result column="handle_content" property="handleContent" />
+        <result column="status_before" property="statusBefore" />
+        <result column="status_after" property="statusAfter" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, dispute_id, handle_time, handler_id, handler_name, handle_content, status_before, status_after, create_time
+    </sql>
+
+</mapper>
