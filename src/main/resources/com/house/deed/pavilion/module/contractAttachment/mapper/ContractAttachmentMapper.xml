@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.contractAttachment.mapper.ContractAttachmentMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.contractAttachment.entity.ContractAttachment">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="contract_id" property="contractId" />
+        <result column="attachment_type" property="attachmentType" />
+        <result column="attachment_url" property="attachmentUrl" />
+        <result column="file_name" property="fileName" />
+        <result column="upload_time" property="uploadTime" />
+        <result column="uploader_id" property="uploaderId" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, contract_id, attachment_type, attachment_url, file_name, upload_time, uploader_id
+    </sql>
+
+</mapper>

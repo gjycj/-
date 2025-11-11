@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.contract.mapper.ContractMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.contract.entity.Contract">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="contract_no" property="contractNo" />
+        <result column="house_id" property="houseId" />
+        <result column="customer_id" property="customerId" />
+        <result column="landlord_id" property="landlordId" />
+        <result column="agent_id" property="agentId" />
+        <result column="contract_type" property="contractType" />
+        <result column="amount" property="amount" />
+        <result column="deposit" property="deposit" />
+        <result column="payment_method" property="paymentMethod" />
+        <result column="sign_time" property="signTime" />
+        <result column="start_date" property="startDate" />
+        <result column="end_date" property="endDate" />
+        <result column="status" property="status" />
+        <result column="remark" property="remark" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, contract_no, house_id, customer_id, landlord_id, agent_id, contract_type, amount, deposit, payment_method, sign_time, start_date, end_date, status, remark, create_time, update_time
+    </sql>
+
+</mapper>

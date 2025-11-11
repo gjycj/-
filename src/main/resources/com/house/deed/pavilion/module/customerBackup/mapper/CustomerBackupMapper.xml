@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.customerBackup.mapper.CustomerBackupMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.customerBackup.entity.CustomerBackup">
+        <id column="id" property="id" />
+        <result column="original_id" property="originalId" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="name" property="name" />
+        <result column="phone" property="phone" />
+        <result column="id_card" property="idCard" />
+        <result column="source" property="source" />
+        <result column="intended_region_id" property="intendedRegionId" />
+        <result column="intended_price_min" property="intendedPriceMin" />
+        <result column="intended_price_max" property="intendedPriceMax" />
+        <result column="intended_house_type" property="intendedHouseType" />
+        <result column="customer_type" property="customerType" />
+        <result column="potential_level" property="potentialLevel" />
+        <result column="status" property="status" />
+        <result column="create_agent_id" property="createAgentId" />
+        <result column="delete_time" property="deleteTime" />
+        <result column="delete_operator" property="deleteOperator" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, original_id, tenant_id, name, phone, id_card, source, intended_region_id, intended_price_min, intended_price_max, intended_house_type, customer_type, potential_level, status, create_agent_id, delete_time, delete_operator
+    </sql>
+
+</mapper>

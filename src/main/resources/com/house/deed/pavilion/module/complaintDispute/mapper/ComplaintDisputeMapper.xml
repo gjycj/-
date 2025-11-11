@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.complaintDispute.mapper.ComplaintDisputeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.complaintDispute.entity.ComplaintDispute">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="dispute_no" property="disputeNo" />
+        <result column="related_contract_id" property="relatedContractId" />
+        <result column="complainant_type" property="complainantType" />
+        <result column="complainant_id" property="complainantId" />
+        <result column="complainant_phone" property="complainantPhone" />
+        <result column="dispute_type" property="disputeType" />
+        <result column="description" property="description" />
+        <result column="status" property="status" />
+        <result column="handler_id" property="handlerId" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, dispute_no, related_contract_id, complainant_type, complainant_id, complainant_phone, dispute_type, description, status, handler_id, create_time, update_time
+    </sql>
+
+</mapper>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.houseImage.mapper.HouseImageMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.houseImage.entity.HouseImage">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="house_id" property="houseId" />
+        <result column="image_url" property="imageUrl" />
+        <result column="image_type" property="imageType" />
+        <result column="sort" property="sort" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, house_id, image_url, image_type, sort, create_time
+    </sql>
+
+</mapper>

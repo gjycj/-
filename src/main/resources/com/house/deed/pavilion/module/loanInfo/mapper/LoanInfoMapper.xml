@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.loanInfo.mapper.LoanInfoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.loanInfo.entity.LoanInfo">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="contract_id" property="contractId" />
+        <result column="bank_name" property="bankName" />
+        <result column="loan_amount" property="loanAmount" />
+        <result column="loan_term" property="loanTerm" />
+        <result column="interest_rate" property="interestRate" />
+        <result column="loan_type" property="loanType" />
+        <result column="apply_time" property="applyTime" />
+        <result column="approve_time" property="approveTime" />
+        <result column="loan_status" property="loanStatus" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, contract_id, bank_name, loan_amount, loan_term, interest_rate, loan_type, apply_time, approve_time, loan_status, create_time, update_time
+    </sql>
+
+</mapper>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.houseMaintainPlan.mapper.HouseMaintainPlanMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.houseMaintainPlan.entity.HouseMaintainPlan">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="house_id" property="houseId" />
+        <result column="maintain_type" property="maintainType" />
+        <result column="cycle" property="cycle" />
+        <result column="start_date" property="startDate" />
+        <result column="end_date" property="endDate" />
+        <result column="executor_id" property="executorId" />
+        <result column="status" property="status" />
+        <result column="remark" property="remark" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, house_id, maintain_type, cycle, start_date, end_date, executor_id, status, remark, create_time
+    </sql>
+
+</mapper>

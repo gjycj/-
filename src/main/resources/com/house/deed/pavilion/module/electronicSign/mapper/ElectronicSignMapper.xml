@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.electronicSign.mapper.ElectronicSignMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.electronicSign.entity.ElectronicSign">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="contract_id" property="contractId" />
+        <result column="sign_platform" property="signPlatform" />
+        <result column="sign_url" property="signUrl" />
+        <result column="sign_status" property="signStatus" />
+        <result column="customer_sign_time" property="customerSignTime" />
+        <result column="landlord_sign_time" property="landlordSignTime" />
+        <result column="sign_hash" property="signHash" />
+        <result column="contract_pdf_url" property="contractPdfUrl" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, contract_id, sign_platform, sign_url, sign_status, customer_sign_time, landlord_sign_time, sign_hash, contract_pdf_url, create_time, update_time
+    </sql>
+
+</mapper>

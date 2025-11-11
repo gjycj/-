@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.maintenanceOrder.mapper.MaintenanceOrderMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="house_id" property="houseId" />
+        <result column="order_no" property="orderNo" />
+        <result column="reporter_type" property="reporterType" />
+        <result column="reporter_id" property="reporterId" />
+        <result column="reporter_phone" property="reporterPhone" />
+        <result column="maintenance_type" property="maintenanceType" />
+        <result column="description" property="description" />
+        <result column="urgency_level" property="urgencyLevel" />
+        <result column="repairman_id" property="repairmanId" />
+        <result column="status" property="status" />
+        <result column="appointment_time" property="appointmentTime" />
+        <result column="complete_time" property="completeTime" />
+        <result column="cost_amount" property="costAmount" />
+        <result column="cost_bearer" property="costBearer" />
+        <result column="remark" property="remark" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, house_id, order_no, reporter_type, reporter_id, reporter_phone, maintenance_type, description, urgency_level, repairman_id, status, appointment_time, complete_time, cost_amount, cost_bearer, remark, create_time, update_time
+    </sql>
+
+</mapper>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.region.mapper.RegionMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.region.entity.Region">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="parent_id" property="parentId" />
+        <result column="region_name" property="regionName" />
+        <result column="region_level" property="regionLevel" />
+        <result column="region_code" property="regionCode" />
+        <result column="sort" property="sort" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, parent_id, region_name, region_level, region_code, sort, create_time
+    </sql>
+
+</mapper>

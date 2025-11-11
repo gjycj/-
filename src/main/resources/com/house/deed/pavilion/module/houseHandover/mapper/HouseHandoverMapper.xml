@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.module.houseHandover.mapper.HouseHandoverMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.module.houseHandover.entity.HouseHandover">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="contract_id" property="contractId" />
+        <result column="house_id" property="houseId" />
+        <result column="handover_type" property="handoverType" />
+        <result column="handover_time" property="handoverTime" />
+        <result column="appliances_list" property="appliancesList" />
+        <result column="water_meter" property="waterMeter" />
+        <result column="electricity_meter" property="electricityMeter" />
+        <result column="gas_meter" property="gasMeter" />
+        <result column="damage_records" property="damageRecords" />
+        <result column="handover_person" property="handoverPerson" />
+        <result column="receiver" property="receiver" />
+        <result column="sign_image_url" property="signImageUrl" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, contract_id, house_id, handover_type, handover_time, appliances_list, water_meter, electricity_meter, gas_meter, damage_records, handover_person, receiver, sign_image_url, create_time
+    </sql>
+
+</mapper>
