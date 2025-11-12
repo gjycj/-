@@ -17,4 +17,5 @@ import org.springframework.stereotype.Service;
 @Service
 public class TenantConfigServiceImpl extends ServiceImpl<TenantConfigMapper, TenantConfig> implements ITenantConfigService {
 
+
 }

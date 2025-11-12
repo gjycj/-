@@ -1,9 +1,7 @@
 package com.house.deed.pavilion.module.agentBackup.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,7 +38,7 @@ public class AgentBackup implements Serializable {
     /**
      * 租户ID（归属租户）
      */
-    @TableField("tenant_id")
+    @TableField(value = "tenant_id", fill = FieldFill.INSERT)
     private Long tenantId;
 
     @TableField("store_id")

@@ -13,4 +13,6 @@ import com.house.deed.pavilion.module.contract.entity.Contract;
  */
 public interface IContractService extends IService<Contract> {
 
+    boolean createContract(Contract contract);
+
 }

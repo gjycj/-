@@ -1,9 +1,7 @@
 package com.house.deed.pavilion.module.house.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,7 +32,7 @@ public class House implements Serializable {
     /**
      * 租户ID（归属租户）
      */
-    @TableField("tenant_id")
+    @TableField(value = "tenant_id", fill = FieldFill.INSERT) // 插入时自动填充
     private Long tenantId;
 
     /**
@@ -151,9 +149,9 @@ public class House implements Serializable {
     @TableField("create_agent_id")
     private Long createAgentId;
 
-    @TableField("create_time")
+    @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
-    @TableField("update_time")
+    @TableField(value = "update_time", fill = FieldFill.UPDATE)
     private LocalDateTime updateTime;
 }
