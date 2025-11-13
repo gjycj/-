@@ -15,7 +15,7 @@ public class SwaggerConfig {
     public OperationCustomizer globalHeaderCustomizer() {
         return (operation, handlerMethod) -> {
             operation.addParametersItem(new HeaderParameter()
-                    .name("tenant-id")
+                    .name("tenant-code")
                     .description("租户ID（必填）")
                     .required(true));
             return operation;

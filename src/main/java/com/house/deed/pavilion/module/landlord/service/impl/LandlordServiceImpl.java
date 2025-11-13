@@ -1,5 +1,6 @@
 package com.house.deed.pavilion.module.landlord.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.module.landlord.entity.Landlord;
 import com.house.deed.pavilion.module.landlord.mapper.LandlordMapper;
@@ -16,5 +17,10 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class LandlordServiceImpl extends ServiceImpl<LandlordMapper, Landlord> implements ILandlordService {
+
+    @Override
+    public boolean existsById(Long id) {
+        return this.exists(Wrappers.<Landlord>lambdaQuery().eq(Landlord::getId, id));
+    }
 
 }

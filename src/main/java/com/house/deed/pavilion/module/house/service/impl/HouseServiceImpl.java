@@ -1,6 +1,7 @@
 package com.house.deed.pavilion.module.house.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.module.house.entity.House;
@@ -53,6 +54,11 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
                 .like(StrUtil.isNotBlank(houseNo), House::getHouseNo, houseNo)
                 .eq(StrUtil.isNotBlank(status), House::getStatus, status)
                 .page(page);
+    }
+
+    @Override
+    public boolean existsById(Long id) {
+        return this.exists(Wrappers.<House>lambdaQuery().eq(House::getId, id));
     }
 
 }

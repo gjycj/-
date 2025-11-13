@@ -20,4 +20,5 @@ public interface IHouseService extends IService<House> {
 
     boolean addHouse(House house, List<Long> landlordIds);
 
+    boolean existsById(Long id);
 }

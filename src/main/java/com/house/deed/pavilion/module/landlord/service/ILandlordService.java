@@ -13,4 +13,7 @@ import com.house.deed.pavilion.module.landlord.entity.Landlord;
  */
 public interface ILandlordService extends IService<Landlord> {
 
+
+    boolean existsById(Long id);
+
 }

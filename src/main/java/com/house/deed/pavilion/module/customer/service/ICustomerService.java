@@ -12,5 +12,5 @@ import com.house.deed.pavilion.module.customer.entity.Customer;
  * @since 2025-11-07
  */
 public interface ICustomerService extends IService<Customer> {
-
+    boolean existsById(Long id);
 }
