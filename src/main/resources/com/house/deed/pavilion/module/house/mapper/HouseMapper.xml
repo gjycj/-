@@ -34,9 +34,12 @@
         id, tenant_id, building_id, house_no, house_type, area, inside_area, floor, total_floor, orientation, decoration, property_right, property_right_cert_no, property_right_years, mortgage_status, mortgage_details, price, transaction_type, status, description, create_agent_id, create_time, update_time
     </sql>
 
-    <!-- 校验楼栋内房号是否重复 -->
+    <!-- 错误示例：SQL中使用了tenantId，但未传入参数 -->
     <select id="checkHouseNoUnique" resultType="java.lang.Integer">
-        SELECT COUNT(1) FROM house WHERE building_id = #{buildingId} AND house_no = #{houseNo} AND tenant_id = #{tenantId}
+        select count(1) from house
+        where building_id = #{buildingId}
+        and house_no = #{houseNo}
+        and tenant_id = #{tenantId}  <!-- 此处需要tenantId参数 -->
     </select>
 
 </mapper>

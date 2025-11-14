@@ -8,16 +8,16 @@ import lombok.Getter;
 @Getter
 public class BusinessException extends RuntimeException {
     private int code; // 错误码
-    private String message; // 错误信息
 
+    // 默认错误码（1-业务错误）
     public BusinessException(String message) {
         super(message);
-        this.code = 1; // 默认业务错误码
+        this.code = 1;
     }
 
+    // 自定义错误码（如404-资源不存在、400-参数错误）
     public BusinessException(int code, String message) {
         super(message);
         this.code = code;
-        this.message = message;
     }
 }

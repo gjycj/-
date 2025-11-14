@@ -1,182 +1,212 @@
 package com.house.deed.pavilion.module.house.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.house.deed.pavilion.module.house.repository.HouseStatus;
+import com.house.deed.pavilion.module.house.repository.HouseStatusTypeHandler;
+import com.house.deed.pavilion.module.house.repository.TransactionType;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import io.swagger.annotations.ApiModelProperty;
-import lombok.Getter;
-import lombok.Setter;
-
-/**
- * <p>
- * 房源信息表（租户核心数据）
- * </p>
- *
- * @author yuquanxi
- * @since 2025-11-07
- */
+@Schema(
+        description = "房源信息核心表，存储租户下的房源基础信息，支持房屋出售、出租及租售结合业务场景。关联楼栋（building）、房东（house_landlord关联表）、标签（house_tag关联表）等实体",
+        requiredMode = Schema.RequiredMode.REQUIRED
+)
 @Getter
 @Setter
 @TableName("house")
 public class House implements Serializable {
 
+    @Serial
+    @Schema(hidden = true)
     private static final long serialVersionUID = 1L;
 
-    /**
-     * 房源ID
-     */
     @TableId(value = "id", type = IdType.AUTO)
-    @ApiModelProperty(value = "房源ID（自增）")
+    @Schema(
+            description = "房源唯一标识（自增主键）",
+            example = "1001",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
     private Long id;
 
-    /**
-     * 租户ID（归属租户）
-     */
-    @ApiModelProperty(value = "租户ID（多租户隔离）")
     @TableField(value = "tenant_id", fill = FieldFill.INSERT) // 插入时自动填充
+    @Schema(
+            description = "租户ID（数据隔离字段），由系统自动填充当前登录租户ID，无需手动设置",
+            example = "101",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
     private Long tenantId;
 
-    /**
-     * 所属楼栋ID（关联building表，同租户）
-     */
     @TableField("building_id")
-    @ApiModelProperty(value = "楼栋ID")
+    @Schema(
+            description = "所属楼栋ID，必须关联当前租户下已存在的楼栋（关联building表id）",
+            example = "2001",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Long buildingId;
 
-    /**
-     * 房号（如1单元301）
-     */
     @TableField("house_no")
-    @ApiModelProperty(value = "房号")
+    @Schema(
+            description = "房号（物理标识），格式建议为[单元号]单元[房间号]（如1单元301、2栋502），同一楼栋内唯一",
+            example = "1单元301",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String houseNo;
 
-    /**
-     * 户型（如3室2厅）
-     */
     @TableField("house_type")
-    @ApiModelProperty(value = "户型")
+    @Schema(
+            description = "户型描述（如3室2厅1卫）",
+            example = "3室2厅1卫",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String houseType;
 
-    /**
-     * 建筑面积（㎡）
-     */
     @TableField("area")
-    @ApiModelProperty(value = "建筑面积（㎡）")
+    @Schema(
+            description = "建筑面积（单位：㎡）",
+            example = "120.50",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private BigDecimal area;
 
-    /**
-     * 套内面积（㎡）
-     */
     @TableField("inside_area")
-    @ApiModelProperty(value = "套内面积（㎡）")
+    @Schema(
+            description = "套内面积（单位：㎡）",
+            example = "105.30"
+    )
     private BigDecimal insideArea;
 
-    /**
-     * 所在楼层
-     */
     @TableField("floor")
-    @ApiModelProperty(value = "所在楼层")
+    @Schema(
+            description = "所在楼层",
+            example = "15",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Integer floor;
 
-    /**
-     * 总楼层
-     */
     @TableField("total_floor")
-    @ApiModelProperty(value = "总楼层")
+    @Schema(
+            description = "楼栋总层数",
+            example = "33",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Integer totalFloor;
 
-    /**
-     * 朝向（南北通透等）
-     */
     @TableField("orientation")
-    @ApiModelProperty(value = "朝向")
+    @Schema(
+            description = "房屋朝向（如南北通透、朝南等）",
+            example = "南北通透",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String orientation;
 
-    /**
-     * 装修情况（毛坯/简装/精装）
-     */
     @TableField("decoration")
-    @ApiModelProperty(value = "装修情况")
+    @Schema(
+            description = "装修情况",
+            example = "精装",
+            allowableValues = {"毛坯", "简装", "精装"},
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String decoration;
 
-    /**
-     * 产权性质（商品房/经济适用房等）
-     */
     @TableField("property_right")
-    @ApiModelProperty(value = "产权性质")
+    @Schema(
+            description = "产权性质",
+            example = "商品房",
+            allowableValues = {"商品房", "经济适用房", "廉租房", "公租房"}
+    )
     private String propertyRight;
 
-    /**
-     * 产权证号
-     */
     @TableField("property_right_cert_no")
-    @ApiModelProperty(value = "产权证号")
+    @Schema(
+            description = "产权证号",
+            example = "京房权证海字第123456号"
+    )
     private String propertyRightCertNo;
 
-    /**
-     * 产权年限
-     */
     @TableField("property_right_years")
-    @ApiModelProperty(value = "产权年限（年）")
+    @Schema(
+            description = "产权年限（单位：年）",
+            example = "70"
+    )
     private Integer propertyRightYears;
 
-    /**
-     * 抵押状态（NONE-无抵押，MORTGAGED-已抵押）
-     */
     @TableField("mortgage_status")
-    @ApiModelProperty(value = "抵押状态")
+    @Schema(
+            description = "抵押状态",
+            example = "NONE",
+            allowableValues = {"NONE", "MORTGAGED"},
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String mortgageStatus;
 
-    /**
-     * 抵押详情（如抵押银行、金额）
-     */
     @TableField("mortgage_details")
-    @ApiModelProperty(value = "抵押详情")
+    @Schema(
+            description = "抵押详情（如抵押银行、抵押金额等，抵押状态为MORTGAGED时必填）",
+            example = "招商银行，抵押金额50万元"
+    )
     private String mortgageDetails;
 
-    /**
-     * 挂牌价（万元）
-     */
     @TableField("price")
-    @ApiModelProperty(value = "挂牌价（万元）")
+    @Schema(
+            description = "挂牌价（单位：万元）",
+            example = "580.00",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private BigDecimal price;
 
-    /**
-     * 交易类型（SALE-出售，RENT-出租，BOTH-可售可租）
-     */
-    @TableField("transaction_type")
-    @ApiModelProperty(value = "交易类型")
-    private String transactionType;
+    @TableField(value = "transaction_type", typeHandler = JacksonTypeHandler.class)
+    @Schema(
+            description = "交易类型",
+            example = "SALE",
+            allowableValues = {"SALE", "RENT", "BOTH"},
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    private TransactionType transactionType;
 
-    /**
-     * 状态（ON_SALE-在售，RESERVED-已预订，SOLD-已售，OFF_SHELF-下架）
-     */
-    @TableField("status")
-    @ApiModelProperty(value = "房源状态")
-    private String status;
+    @TableField(value = "status", typeHandler = HouseStatusTypeHandler.class)
+    @Schema(
+            description = "房源状态",
+            example = "ON_SALE",
+            allowableValues = {"ON_SALE", "RESERVED", "SOLD", "OFF_SHELF"},
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    private HouseStatus status;
 
-    /**
-     * 房源描述
-     */
     @TableField("description")
-    @ApiModelProperty(value = "房源描述")
+    @Schema(
+            description = "房源详细描述（如配套设施、交通情况等）",
+            example = "临近地铁10号线，小区绿化率30%，周边有三甲医院"
+    )
     private String description;
 
-    /**
-     * 录入经纪人ID（同租户）
-     */
     @TableField("create_agent_id")
-    @ApiModelProperty(value = "录入经纪人ID")
+    @Schema(
+            description = "录入经纪人ID（关联当前租户下的agent表）",
+            example = "3001",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Long createAgentId;
 
     @TableField(value = "create_time", fill = FieldFill.INSERT)
-    @ApiModelProperty(value = "创建时间")
+    @Schema(
+            description = "创建时间（系统自动填充）",
+            example = "2025-11-07T10:30:00",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
     private LocalDateTime createTime;
 
     @TableField(value = "update_time", fill = FieldFill.UPDATE)
-    @ApiModelProperty(value = "更新时间")
+    @Schema(
+            description = "更新时间（系统自动填充）",
+            example = "2025-11-08T15:20:00",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
     private LocalDateTime updateTime;
 }

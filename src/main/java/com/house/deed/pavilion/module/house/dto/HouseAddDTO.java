@@ -1,79 +1,157 @@
 package com.house.deed.pavilion.module.house.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import com.house.deed.pavilion.module.house.repository.TransactionType;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 房源录入请求DTO
+ * 房源录入请求DTO，用于接收新增房源的基础信息及关联数据（需符合当前租户数据隔离规则）
  */
 @Data
-@ApiModel(value = "HouseAddDTO", description = "房源录入请求参数")
+@Schema(description = "房源录入请求参数，包含房源基础信息、关联房东、标签及图片列表")
 public class HouseAddDTO {
 
-    @ApiModelProperty(value = "楼盘ID", required = true)
+    @Schema(
+            description = "所属楼盘ID（关联property表，必须为当前租户下已存在的楼盘）",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Long propertyId;
 
-    @ApiModelProperty(value = "楼栋ID", required = true)
+    @Schema(
+            description = "所属楼栋ID（关联building表，必须为当前租户下已存在的楼栋，且归属上述楼盘）",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Long buildingId;
 
-    @ApiModelProperty(value = "房号", required = true, example = "1-301")
+    @Schema(
+            description = "房号（物理标识），格式建议为[单元号]-[房间号]（如1-301、2-502），同一楼栋内唯一",
+            example = "1-301",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String houseNo;
 
-    @ApiModelProperty(value = "户型", required = true, example = "3室2厅")
+    @Schema(
+            description = "户型描述（如3室2厅1卫、2室1厅）",
+            example = "3室2厅",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String houseType;
 
-    @ApiModelProperty(value = "建筑面积（㎡）", required = true, example = "120.50")
+    @Schema(
+            description = "建筑面积（单位：㎡，保留两位小数）",
+            example = "120.50",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private BigDecimal area;
 
-    @ApiModelProperty(value = "套内面积（㎡）", example = "96.40")
+    @Schema(
+            description = "套内面积（单位：㎡，保留两位小数，非必填）",
+            example = "96.40"
+    )
     private BigDecimal insideArea;
 
-    @ApiModelProperty(value = "所在楼层", required = true, example = "3")
+    @Schema(
+            description = "所在楼层（需小于总楼层数）",
+            example = "3",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Integer floor;
 
-    @ApiModelProperty(value = "总楼层", required = true, example = "30")
+    @Schema(
+            description = "楼栋总层数",
+            example = "30",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Integer totalFloor;
 
-    @ApiModelProperty(value = "朝向", example = "南北通透")
+    @Schema(
+            description = "房屋朝向（如南北通透、朝南、东西向等）",
+            example = "南北通透",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String orientation;
 
-    @ApiModelProperty(value = "装修情况", example = "精装")
+    @Schema(
+            description = "装修情况",
+            example = "精装",
+            allowableValues = {"毛坯", "简装", "精装"},
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String decoration;
 
-    @ApiModelProperty(value = "产权性质", required = true, example = "商品房")
+    @Schema(
+            description = "产权性质",
+            example = "商品房",
+            allowableValues = {"商品房", "经济适用房", "廉租房", "公租房"},
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String propertyRight;
 
-    @ApiModelProperty(value = "产权证号", example = "123456789012345")
+    @Schema(
+            description = "产权证号（格式依当地政策，如京房权证海字第123456号）",
+            example = "123456789012345"
+    )
     private String propertyRightCertNo;
 
-    @ApiModelProperty(value = "产权年限（年）", example = "70")
+    @Schema(
+            description = "产权年限（单位：年，如70年、50年）",
+            example = "70"
+    )
     private Integer propertyRightYears;
 
-    @ApiModelProperty(value = "抵押状态", example = "NONE")
+    @Schema(
+            description = "抵押状态",
+            example = "NONE",
+            allowableValues = {"NONE", "MORTGAGED"},
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String mortgageStatus;
 
-    @ApiModelProperty(value = "抵押详情", example = "无抵押")
+    @Schema(
+            description = "抵押详情（抵押状态为MORTGAGED时必填，需说明抵押银行、金额等信息）",
+            example = "招商银行，抵押金额50万元"
+    )
     private String mortgageDetails;
 
-    @ApiModelProperty(value = "挂牌价（万元）", required = true, example = "150.00")
+    @Schema(
+            description = "挂牌价（单位：万元，保留两位小数）",
+            example = "150.00",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private BigDecimal price;
 
-    @ApiModelProperty(value = "交易类型", required = true, example = "SALE", notes = "SALE-出售，RENT-出租，BOTH-可售可租")
-    private String transactionType;
+    @Schema(
+            description = "交易类型（SALE-出售，RENT-出租，BOTH-可售可租）",
+            example = "SALE",
+            allowableValues = {"SALE", "RENT", "BOTH"},
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    @NotNull(message = "交易类型不能为空")
+    private TransactionType transactionType;
 
-    @ApiModelProperty(value = "房源描述", example = "采光好，近地铁")
+    @Schema(
+            description = "房源详细描述（如配套设施、交通情况、房屋亮点等）",
+            example = "采光好，近地铁10号线，小区绿化率30%"
+    )
     private String description;
 
-    @ApiModelProperty(value = "关联房东ID（可选）")
-    private Long landlordId;
+    @Schema(
+            description = "关联房东ID列表（至少关联一个房东，需为当前租户下的有效房东ID，关联landlord表）",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    private List<Long> landlordIds;
 
-    @ApiModelProperty(value = "关联标签ID列表（可选）")
+    @Schema(
+            description = "关联标签ID列表（可选，需为当前租户下的有效标签ID，关联tag表）"
+    )
     private List<Long> tagIds;
 
-    @ApiModelProperty(value = "房源图片URL列表（可选）")
+    @Schema(
+            description = "房源图片列表（可选，包含图片URL、类型及排序信息）"
+    )
     private List<HouseImageDTO> imageList;
 }

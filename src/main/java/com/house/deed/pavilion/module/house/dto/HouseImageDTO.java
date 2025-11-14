@@ -1,24 +1,33 @@
 package com.house.deed.pavilion.module.house.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 
 /**
- * 房源图片子DTO
+ * 房源图片子DTO，用于接收房源图片的URL、类型及排序信息
  */
 @Data
-@ApiModel(value = "HouseImageDTO", description = "房源图片参数")
+@Schema(description = "房源图片参数，包含图片URL、类型及排序信息")
 public class HouseImageDTO {
 
-    @ApiModelProperty(value = "图片URL", required = true)
+    @Schema(
+            description = "图片URL地址（需为有效的图片资源路径，同租户下可访问）",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String imageUrl;
 
-    @ApiModelProperty(value = "图片类型", example = "COVER")
+    @Schema(
+            description = "图片类型（区分图片展示场景）",
+            example = "COVER",
+            allowableValues = {"COVER", "LIVING_ROOM", "BEDROOM", "KITCHEN", "BATHROOM", "BALCONY", "OTHER"},
+            defaultValue = "OTHER"
+    )
     private String imageType;
 
-    @ApiModelProperty(value = "排序（数字越小越靠前）", example = "0")
+    @Schema(
+            description = "图片排序序号（数字越小越靠前，默认按0排序）",
+            example = "0",
+            defaultValue = "0"
+    )
     private Integer sort;
 }
