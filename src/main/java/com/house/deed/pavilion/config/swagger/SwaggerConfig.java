@@ -10,13 +10,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SwaggerConfig {
 
-    // 全局添加tenant-id请求头
+    // 全局添加tenant-code请求头
     @Bean
     public OperationCustomizer globalHeaderCustomizer() {
         return (operation, handlerMethod) -> {
             operation.addParametersItem(new HeaderParameter()
-                    .name("tenant-code")
-                    .description("租户ID（必填）")
+                    .name("tenant-id")
+                    .description("租户id（必填）")
                     .required(true));
             return operation;
         };

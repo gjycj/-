@@ -2,9 +2,9 @@ package com.house.deed.pavilion.module.house.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.house.deed.pavilion.module.house.dto.HouseAddDTO;
 import com.house.deed.pavilion.module.house.entity.House;
 
-import java.util.List;
 
 /**
  * <p>
@@ -18,7 +18,13 @@ public interface IHouseService extends IService<House> {
 
     Page<House> getHousePage(Page<House> page, String houseNo, String status);
 
-    boolean addHouse(House house, List<Long> landlordIds);
-
     boolean existsById(Long id);
+
+    /**
+     * 房源录入
+     * @param dto 录入请求DTO
+     * @param currentAgentId 当前登录经纪人ID
+     * @return 录入成功的房源ID
+     */
+    Long addHouse(HouseAddDTO dto, Long currentAgentId);
 }

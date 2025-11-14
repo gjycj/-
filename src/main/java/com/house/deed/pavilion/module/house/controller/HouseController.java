@@ -3,12 +3,15 @@ package com.house.deed.pavilion.module.house.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.module.house.dto.HouseAddDTO;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.service.IHouseService;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 /**
  * <p>
@@ -26,17 +29,15 @@ public class HouseController {
     private IHouseService houseService;
 
     /**
-     * 新增房源（关联房东）
-     * @param house 房源信息
-     * @param landlordIds 关联的房东ID列表
+     * 房源录入接口
      */
-    @PostMapping
-    public ResultDTO<Boolean> addHouse(@RequestBody House house, @RequestParam List<Long> landlordIds) {
-        if (landlordIds == null || landlordIds.isEmpty()) {
-            throw new BusinessException(400, "请至少关联一个房东");
-        }
-        boolean success = houseService.addHouse(house, landlordIds);
-        return ResultDTO.success(success);
+    @PostMapping("/add")
+    @ApiOperation(value = "房源录入", notes = "经纪人录入房源信息，支持关联房东、标签、图片")
+    public ResultDTO<String> addHouse(
+            @ApiParam(value = "房源录入参数", required = true) @Valid @RequestBody HouseAddDTO dto,
+            @ApiParam(value = "当前登录经纪人ID", required = true) Long currentAgentId) {
+        Long houseId = houseService.addHouse(dto, currentAgentId);
+        return ResultDTO.success("房源" + houseId + "录入成功");
     }
 
     /**

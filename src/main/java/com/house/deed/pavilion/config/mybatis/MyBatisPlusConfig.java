@@ -37,7 +37,7 @@ public class MyBatisPlusConfig {
             // 忽略租户过滤的表（如系统级表）
             @Override
             public boolean ignoreTable(String tableName) {
-                return "sys_user".equals(tableName) || "tenant".equals(tableName); // 示例：系统用户表无需租户过滤
+                return "sys_user".equals(tableName) || "tenant".equals(tableName) || "tenant_config".equals(tableName); // 示例：系统用户表无需租户过滤
             }
         }));
         return interceptor;

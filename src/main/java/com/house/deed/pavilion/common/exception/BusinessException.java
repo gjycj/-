@@ -8,6 +8,7 @@ import lombok.Getter;
 @Getter
 public class BusinessException extends RuntimeException {
     private int code; // 错误码
+    private String message; // 错误信息
 
     public BusinessException(String message) {
         super(message);
@@ -17,5 +18,6 @@ public class BusinessException extends RuntimeException {
     public BusinessException(int code, String message) {
         super(message);
         this.code = code;
+        this.message = message;
     }
 }

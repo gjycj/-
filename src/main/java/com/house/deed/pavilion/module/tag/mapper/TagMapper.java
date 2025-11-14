@@ -1,7 +1,7 @@
 package com.house.deed.pavilion.module.tag.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.house.deed.pavilion.module.tag.entity.Tag;
 
 /**
  * <p>

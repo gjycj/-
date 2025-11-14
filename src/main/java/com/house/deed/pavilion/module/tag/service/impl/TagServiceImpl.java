@@ -1,9 +1,9 @@
 package com.house.deed.pavilion.module.tag.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.house.deed.pavilion.module.tag.entity.Tag;
 import com.house.deed.pavilion.module.tag.mapper.TagMapper;
 import com.house.deed.pavilion.module.tag.service.ITagService;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.stereotype.Service;
 
 /**

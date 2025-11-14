@@ -20,17 +20,16 @@ public class TenantInterceptor implements HandlerInterceptor {
     // 修改 TenantInterceptor 的 preHandle 方法
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        String tenantIdStr = request.getHeader("tenant-code");
-        System.out.println(1);
+        String tenantIdStr = request.getHeader("tenant-id");
         if (StrUtil.isBlank(tenantIdStr)) {
             // 抛出租户ID缺失异常
             throw new BusinessException(401, "缺少租户ID（tenant-id请求头）");
         }
         // 根据租户编码查询租户ID
         Tenant tenant = tenantService.lambdaQuery()
-                .eq(Tenant::getTenantCode, tenantIdStr)
+                .eq(Tenant::getId, tenantIdStr)
                 .one();
-        System.out.println(tenant);
+        System.out.println("zh:"+tenant);
         if (tenant == null || tenant.getStatus() != 1) {
             // 抛出租户不存在或禁用异常
             throw new BusinessException(403, "租户不存在或已禁用");
