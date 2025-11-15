@@ -12,7 +12,7 @@
         <result column="address" property="address" />
         <result column="manager_id" property="managerId" />
         <result column="phone" property="phone" />
-        <result column="status" property="status" typeHandler="com.house.deed.pavilion.module.store.repository.StoreStatusTypeHandler" />
+        <result column="status" property="status" />
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
     </resultMap>

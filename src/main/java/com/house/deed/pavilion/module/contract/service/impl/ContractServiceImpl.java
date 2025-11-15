@@ -2,6 +2,7 @@ package com.house.deed.pavilion.module.contract.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.mapper.ContractMapper;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * <p>
@@ -56,6 +58,33 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
 
         // 4. 保存合同（tenant_id自动填充）
         return save(contract);
+    }
+
+    /**
+     * 合同状态流转（如：签约→执行中→完成）
+     */
+    @Transactional
+    public boolean updateContractStatus(Long contractId, String targetStatus) {
+        Contract contract = getById(contractId);
+        if (contract == null) {
+            throw new BusinessException(404, "合同不存在");
+        }
+        // 校验状态流转合法性（例如：SIGNED→EXECUTING→COMPLETED）
+        validateStatusTransition(contract.getStatus(), targetStatus);
+        contract.setStatus(targetStatus);
+        return updateById(contract);
+    }
+
+    // 校验状态流转是否合法
+    private void validateStatusTransition(String currentStatus, String targetStatus) {
+        List<String> validTransitions = switch (currentStatus) {
+            case "SIGNED" -> List.of("EXECUTING", "TERMINATED");
+            case "EXECUTING" -> List.of("COMPLETED", "TERMINATED");
+            default -> List.of(); // 其他状态不允许流转
+        };
+        if (!validTransitions.contains(targetStatus)) {
+            throw new BusinessException(400, "不允许从[" + currentStatus + "]流转至[" + targetStatus + "]");
+        }
     }
 
     // 生成租户内唯一的合同编号

@@ -6,7 +6,6 @@ import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.store.entity.Store;
-import com.house.deed.pavilion.module.store.repository.StoreStatus;
 import com.house.deed.pavilion.module.store.service.IStoreService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -138,15 +137,14 @@ public class StoreController {
      * 禁用/启用门店
      */
     @PatchMapping("/status/{id}")
-    @Operation(summary = "更新门店状态", description = "修改门店营业状态（OPEN-营业，CLOSE-停业）")
+    @Operation(summary = "更新门店状态", description = "修改门店营业状态（true=营业，false=停业）")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "状态更新成功"),
-            @ApiResponse(responseCode = "400", description = "无效状态值"),
             @ApiResponse(responseCode = "404", description = "门店不存在或无权访问")
     })
     public ResultDTO<Boolean> updateStoreStatus(
             @Parameter(description = "门店ID", required = true) @PathVariable Long id,
-            @Parameter(description = "状态值（OPEN-营业，CLOSE-停业）", required = true) @RequestParam StoreStatus status) {
+            @Parameter(description = "状态值（true=营业，false=停业）", required = true) @RequestParam boolean status) {
 
         Long tenantId = TenantContext.getTenantId();
         Store store = storeService.getById(id);
@@ -157,23 +155,26 @@ public class StoreController {
         }
 
         // 状态未变更则直接返回成功（避免无效更新）
-        if (store.getStatus() == status) {
+        if (store.isStatus() == status) {  // 注意：boolean类型的getter方法是isStatus()
             return ResultDTO.success(true);
         }
 
-        // 记录原状态用于日志（可选，根据业务是否需要审计）
-        StoreStatus oldStatus = store.getStatus();
+        // 记录原状态用于日志
+        boolean oldStatus = store.isStatus();
+        String oldStatusDesc = oldStatus ? "营业" : "停业";
+        String newStatusDesc = status ? "营业" : "停业";
 
         // 更新状态及时间
         store.setStatus(status);
         store.setUpdateTime(LocalDateTime.now());
         boolean success = storeService.updateById(store);
 
-        // 可选：记录状态变更日志（参考house_status_log表设计）
+        // 记录状态变更日志
         if (success) {
             log.info("门店状态变更：门店ID={}, 租户ID={}, 原状态={}, 新状态={}",
-                    id, tenantId, oldStatus.getDesc(), status.getDesc());
-            // 如需持久化日志，可调用日志服务：storeStatusLogService.recordLog(store, oldStatus, status, operatorId);
+                    id, tenantId, oldStatusDesc, newStatusDesc);
+            // 如需持久化日志，可调用日志服务（参考house_status_log设计）
+            // storeStatusLogService.recordLog(store, oldStatus, status, operatorId);
         }
 
         return ResultDTO.success(success);

@@ -493,4 +493,5 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
         return removeById(id);
     }
 
+
 }

@@ -5,8 +5,6 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.house.deed.pavilion.module.store.repository.StoreStatus;
-import com.house.deed.pavilion.module.store.repository.StoreStatusTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -123,16 +121,16 @@ public class Store implements Serializable {
     private String phone;
 
     /**
-     * 状态（1-营业，0-停业）
+     * 状态（true=营业，false=停业；对应数据库tinyint存储：1=营业，0=停业）
      */
-    @TableField(value = "status", typeHandler = StoreStatusTypeHandler.class, fill = FieldFill.INSERT)
+    @TableField(value = "status")
     @Schema(
-            description = "门店状态",
-            example = "OPEN",
-            allowableValues = {"OPEN", "CLOSE"},
+            description = "门店状态（true表示营业，false表示停业）",
+            example = "true",
+            allowableValues = {"true", "false"},
             requiredMode = Schema.RequiredMode.REQUIRED
     )
-    private StoreStatus status;
+    private boolean status;
 
     /**
      * 创建时间
