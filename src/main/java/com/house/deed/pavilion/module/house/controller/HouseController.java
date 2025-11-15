@@ -3,6 +3,7 @@ package com.house.deed.pavilion.module.house.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.house.dto.HouseAddDTO;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.repository.TransactionType;
@@ -13,10 +14,12 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 
 
 /**
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
  * @author yuquanxi
  * @since 2025-11-07
  */
+@Tag(name = "房源管理", description = "房源信息CRUD及状态管理接口")
 @RestController
 @RequestMapping("/module/house")
 public class HouseController {
@@ -100,21 +104,38 @@ public class HouseController {
      * 更新房源信息
      */
     @PutMapping("/{id}")
-    @Operation(summary = "更新房源信息", description = "根据ID更新房源信息，ID必须在路径和请求体中保持一致")
+    @Operation(summary = "更新房源信息", description = "根据ID更新房源信息，ID必须在路径和请求体中保持一致，且仅允许更新当前租户下的房源")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "更新成功"),
-            @ApiResponse(responseCode = "400", description = "ID不匹配"),
-            @ApiResponse(responseCode = "404", description = "房源不存在")
+            @ApiResponse(responseCode = "400", description = "ID不匹配或参数错误"),
+            @ApiResponse(responseCode = "404", description = "房源不存在或无权访问")
     })
     public ResultDTO<Boolean> updateHouse(
             @Parameter(description = "房源ID", required = true) @PathVariable Long id,
             @Parameter(description = "更新后的房源信息", required = true) @RequestBody House house) {
-        if (!id.equals(house.getId())) {
-            throw new BusinessException(400, "ID不匹配");
-        }
-        if (!houseService.existsById(id)) {
+//        // 1. 校验路径ID与请求体ID一致性 无需校验查询不到抛出异常
+//        if (!id.equals(house.getId())) {
+//            throw new BusinessException(400, "路径ID与请求体ID不匹配");
+//        }
+
+        // 2. 获取当前租户ID（租户隔离）
+        Long tenantId = TenantContext.getTenantId();
+
+        // 3. 校验房源存在性及租户权限（仅允许操作当前租户下的房源）
+        House existingHouse = houseService.getById(id);
+        if (existingHouse == null) {
             throw new BusinessException(404, "房源不存在");
         }
+        if (!existingHouse.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "无权访问该房源");
+        }
+
+        // 4. 强制设置租户ID（防止篡改）和更新时间
+        house.setId(id);
+        house.setTenantId(tenantId);
+        house.setUpdateTime(LocalDateTime.now()); // 若配置了MyBatis-Plus自动填充可省略
+
+        // 5. 执行更新操作
         boolean success = houseService.updateById(house);
         return ResultDTO.success(success);
     }

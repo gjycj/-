@@ -1,5 +1,7 @@
 package com.house.deed.pavilion.module.house.dto;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.house.deed.pavilion.module.house.repository.TransactionType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -14,6 +16,14 @@ import java.util.List;
 @Data
 @Schema(description = "房源录入请求参数，包含房源基础信息、关联房东、标签及图片列表")
 public class HouseAddDTO {
+
+    @TableId(value = "id", type = IdType.AUTO)
+    @Schema(
+            description = "房源唯一标识（自增主键）",
+            example = "1001",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private Long id;
 
     @Schema(
             description = "所属楼盘ID（关联property表，必须为当前租户下已存在的楼盘）",

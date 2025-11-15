@@ -17,4 +17,11 @@ public interface IRegionService extends IService<Region> {
 
     List<Region> getRegionList(Long parentId);
 
+    /**
+     * 校验区域ID合法性（必须属于当前租户或系统默认区域）
+     * @param tenantId 当前租户ID
+     * @param regionId 待校验的区域ID
+     */
+    void validateRegion(Long tenantId, Long regionId);
+
 }

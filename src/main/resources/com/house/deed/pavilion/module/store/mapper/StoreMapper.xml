@@ -12,7 +12,7 @@
         <result column="address" property="address" />
         <result column="manager_id" property="managerId" />
         <result column="phone" property="phone" />
-        <result column="status" property="status" />
+        <result column="status" property="status" typeHandler="com.house.deed.pavilion.module.store.repository.StoreStatusTypeHandler" />
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
     </resultMap>
@@ -21,5 +21,13 @@
     <sql id="Base_Column_List">
         id, tenant_id, store_code, store_name, region_id, address, manager_id, phone, status, create_time, update_time
     </sql>
+
+    <select id="countByStoreCode" resultType="java.lang.Integer">
+        SELECT COUNT(1) FROM store
+        WHERE tenant_id = #{tenantId}
+        AND store_code = #{storeCode}
+        <if test="excludeId != null">AND id != #{excludeId}</if>
+    </select>
+
 
 </mapper>
