@@ -10,6 +10,7 @@
         <result column="order_no" property="orderNo" />
         <result column="reporter_type" property="reporterType" />
         <result column="reporter_id" property="reporterId" />
+        <result column="contract_id" property="contractId" />
         <result column="reporter_phone" property="reporterPhone" />
         <result column="maintenance_type" property="maintenanceType" />
         <result column="description" property="description" />

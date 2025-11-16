@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.common.util.ValidateUtil;
+import com.house.deed.pavilion.module.contract.entity.Contract;
+import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.service.IHouseService;
 import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
@@ -17,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -36,6 +40,10 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
 
     // 工单编号生成计数器（实际生产环境建议用Redis自增）
     private final AtomicInteger orderNoCounter = new AtomicInteger(1);
+
+    @Resource
+    private IContractService contractService;
+
 
     /**
      * 创建维修工单（事务保证原子性）
@@ -57,6 +65,7 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
         }
 
         // 3. 生成租户内唯一订单号（格式：TENANT{租户ID}_MAINT{yyyyMMdd}{3位序号}）
+        validateReporterHasPermission(order, house.getId(), tenantId);
         String orderNo = generateOrderNo(tenantId);
         order.setOrderNo(orderNo);
 
@@ -77,6 +86,43 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
             throw new BusinessException(500, "工单创建失败");
         }
         return order.getId();
+    }
+
+    /**
+     * 校验报修人是否有权限创建该房源的维修单
+     * 规则：仅合同关联人（租户/房东/签约经纪人）可创建
+     */
+    private void validateReporterHasPermission(MaintenanceOrder order, Long houseId, Long tenantId) {
+        String reporterType = order.getReporterType();
+        Long reporterId = order.getReporterId();
+
+        // 查询该房源的有效合同（租赁：执行中；买卖：已完成但可能有保修期）
+        List<Contract> validContracts = contractService.lambdaQuery()
+                .eq(Contract::getTenantId, tenantId)
+                .eq(Contract::getHouseId, houseId)
+                .in(Contract::getStatus, Arrays.asList("SIGNED", "EXECUTING", "COMPLETED")) // 有效合同状态
+                .list();
+
+        if (validContracts.isEmpty()) {
+            throw new BusinessException(403, "该房源无有效合同，无法创建维修单");
+        }
+
+        // 校验报修人是否为合同关联方
+        boolean hasPermission = validContracts.stream().anyMatch(contract -> {
+            return switch (reporterType) {
+                case "TENANT" -> // 租户：必须是合同中的客户
+                        contract.getCustomerId().equals(reporterId);
+                case "LANDLORD" -> // 房东：必须是合同中的房东
+                        contract.getLandlordId().equals(reporterId);
+                case "AGENT" -> // 经纪人：必须是合同的签约经纪人
+                        contract.getAgentId().equals(reporterId);
+                default -> false;
+            };
+        });
+
+        if (!hasPermission) {
+            throw new BusinessException(403, "报修人不是该房源的合同关联方，无权创建维修单");
+        }
     }
 
     /**

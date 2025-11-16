@@ -220,6 +220,13 @@ public class MaintenanceOrder implements Serializable {
     @TableField("remark")
     private String remark;
 
+    /**
+     * 关联合同ID（仅限租赁场景，关联contract表，同租户）
+     * 用于通过合同查询关联的维修记录
+     */
+    @TableField("contract_id")
+    private Long contractId;
+
     @Schema(
             description = "创建时间（系统自动填充），格式：yyyy-MM-ddTHH:mm:ss",
             example = "2025-11-07T10:00:00",

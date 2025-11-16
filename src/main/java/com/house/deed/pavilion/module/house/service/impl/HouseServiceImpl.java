@@ -41,6 +41,7 @@ import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -437,12 +438,10 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
      * @return 分页查询结果（包含房源列表及分页信息）
      */
     @Override
+    @Cacheable(value = "housePageCache", key = "'tenant:'+#tenantId+':page:'+#pageNum+':size:'+#pageSize+':houseNo:'+#houseNo+':status:'+#status")
     public Page<House> getHousePage(Page<House> page, String houseNo, String status) {
-        return lambdaQuery()
-                .like(StrUtil.isNotBlank(houseNo), House::getHouseNo, houseNo)
-                .eq(StrUtil.isNotBlank(status), House::getStatus,
-                        HouseStatus.getByCode(status) != null ? Objects.requireNonNull(HouseStatus.getByCode(status)).getCode() : status)
-                .page(page);
+        Long tenantId = TenantContext.getTenantId();
+        return baseMapper.selectHousePage(page, houseNo, status, tenantId);
     }
 
 

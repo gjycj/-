@@ -1,6 +1,7 @@
 package com.house.deed.pavilion.module.house.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.house.deed.pavilion.module.house.entity.House;
 import org.apache.ibatis.annotations.Param;
 
@@ -30,4 +31,5 @@ public interface HouseMapper extends BaseMapper<House> {
             @Param("tenantId") Long tenantId
     );
 
+    Page<House> selectHousePage(Page<House> page, String houseNo, String status, Long tenantId);
 }

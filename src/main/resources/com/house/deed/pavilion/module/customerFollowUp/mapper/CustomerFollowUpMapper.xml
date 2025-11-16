@@ -9,6 +9,7 @@
         <result column="customer_id" property="customerId" />
         <result column="house_id" property="houseId" />
         <result column="contract_id" property="contractId" />
+        <result column="visit_record_id" property="visitRecordId" />
         <result column="agent_id" property="agentId" />
         <result column="follow_time" property="followTime" />
         <result column="content" property="content" />

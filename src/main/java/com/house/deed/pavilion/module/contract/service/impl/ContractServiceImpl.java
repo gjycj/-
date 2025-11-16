@@ -5,21 +5,27 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.TenantContext;
+import com.house.deed.pavilion.module.agent.entity.Agent;
+import com.house.deed.pavilion.module.agent.service.IAgentService;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.mapper.ContractMapper;
 import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.service.ICustomerService;
-import com.house.deed.pavilion.module.customerFollowUp.service.ICustomerFollowUpService;
 import com.house.deed.pavilion.module.house.entity.House;
+import com.house.deed.pavilion.module.house.repository.HouseStatus;
 import com.house.deed.pavilion.module.house.service.IHouseService;
+import com.house.deed.pavilion.module.houseStatusLog.entity.HouseStatusLog;
+import com.house.deed.pavilion.module.houseStatusLog.service.IHouseStatusLogService;
 import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
 import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -32,129 +38,201 @@ import java.util.List;
  * @since 2025-11-07
  */
 @Service
+@Slf4j
 public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> implements IContractService {
 
     @Resource
     private IHouseService houseService;
     @Resource
+    private IHouseStatusLogService houseStatusLogService;
+    @Resource
     private ICustomerService customerService;
     @Resource
-    private ICustomerFollowUpService customerFollowUpService; // 注入带看记录服务
+    private IVisitRecordService visitRecordService; // 带看记录服务
     @Resource
-    private IVisitRecordService visitRecordService; // 新增：注入带看记录服务
+    private IAgentService agentService; // 经纪人服务
 
-
+    /**
+     * 创建合同（包含房源/客户校验、合同编号生成、linkVisitRecords）
+     */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public boolean createContract(Contract contract) {
         Long tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new BusinessException(400, "租户上下文获取失败");
+        }
 
-        // 1. 校验房源是否属于当前租户
+        // 1. 校验房源合法性（存在且归属当前租户）
         House house = houseService.getById(contract.getHouseId());
         if (house == null || !house.getTenantId().equals(tenantId)) {
-            throw new RuntimeException("房源不存在或不属于当前租户");
+            throw new BusinessException(404, "房源不存在或不属于当前租户");
         }
 
-        // 2. 校验客户是否属于当前租户
+        // 2. 校验客户合法性（存在且归属当前租户）
         Customer customer = customerService.getById(contract.getCustomerId());
         if (customer == null || !customer.getTenantId().equals(tenantId)) {
-            throw new RuntimeException("客户不存在或不属于当前租户");
+            throw new BusinessException(404, "客户不存在或不属于当前租户");
         }
 
-        // 3. 生成租户内唯一的合同编号（如 TENANT123_CONTRACT20240520001）
+        // 3. 生成租户内唯一合同编号（优化：增加自增序列减少重复风险）
         String contractNo = generateContractNo(tenantId);
         contract.setContractNo(contractNo);
+        contract.setTenantId(tenantId); // 确保租户ID正确设置
+        contract.setCreateTime(LocalDateTime.now());
+        contract.setUpdateTime(LocalDateTime.now());
 
-        // 4. 保存合同（tenant_id自动填充）
-        return save(contract);
+        // 4. 保存合同
+        boolean saveSuccess = save(contract);
+        if (!saveSuccess) {
+            log.error("合同创建失败，合同信息：{}", contract);
+            throw new BusinessException(500, "合同创建失败");
+        }
+
+        // 5. 关联最近一次带看记录（客户+房源维度）
+        linkVisitRecords(contract, tenantId);
+
+        return true;
     }
 
     /**
-     * 合同状态流转（如：签约→执行中→完成）
+     * 合同状态流转（包含房源状态自动更新、带看记录关联）
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public boolean updateContractStatus(Long contractId, String targetStatus) {
+        // 1. 校验合同存在性
         Contract contract = getById(contractId);
         if (contract == null) {
             throw new BusinessException(404, "合同不存在");
         }
-        // 校验状态流转合法性
+
+        // 2. 校验状态流转合法性
         validateStatusTransition(contract.getStatus(), targetStatus);
 
-        // 当状态变为SIGNED时，关联对应的带看记录
-        if ("SIGNED".equals(targetStatus)) {
-            Long tenantId = contract.getTenantId();
-            Long customerId = contract.getCustomerId();
-            Long houseId = contract.getHouseId();
-
-            // 查询该客户+房源的最近带看记录
-            VisitRecord latestVisit = visitRecordService.getOne(
-                    new LambdaQueryWrapper<VisitRecord>()
-                            .eq(VisitRecord::getTenantId, tenantId)
-                            .eq(VisitRecord::getCustomerId, customerId)
-                            .eq(VisitRecord::getHouseId, houseId)
-                            .orderByDesc(VisitRecord::getVisitTime)
-                            .last("LIMIT 1")
-            );
-
-            if (latestVisit != null) {
-                latestVisit.setContractId(contractId);
-                visitRecordService.updateById(latestVisit);
-            }
+        // 3. 签约状态特殊处理（更新房源状态+linkVisitRecords）
+        if ("SIGNED".equals(targetStatus) && !"SIGNED".equals(contract.getStatus())) {
+            // 更新房源状态（买卖→已售，租赁→已租）
+            updateHouseStatusAfterSign(contract);
+            // linkVisitRecords（若创建时未关联成功）
+            linkVisitRecords(contract, contract.getTenantId());
         }
 
+        // 4. 更新合同状态
         contract.setStatus(targetStatus);
+        contract.setUpdateTime(LocalDateTime.now());
         return updateById(contract);
     }
 
+    /**
+     * 合同签约后更新房源状态并记录日志
+     */
+    private void updateHouseStatusAfterSign(Contract contract) {
+        Long houseId = contract.getHouseId();
+        Long tenantId = contract.getTenantId();
 
-//    @Transactional
-//    public boolean updateContractStatus(Long contractId, String targetStatus) {
-//        Contract contract = getById(contractId);
-//        if (contract == null) {
-//            throw new BusinessException(404, "合同不存在");
-//        }
-//        // 校验状态流转合法性
-//        validateStatusTransition(contract.getStatus(), targetStatus);
-//
-//        // 当状态变为SIGNED时，关联带看记录
-//        if ("SIGNED".equals(targetStatus)) {
-//            // 查询该客户+房源的最近带看记录
-//            CustomerFollowUp latestFollowUp = customerFollowUpService.getOne(
-//                    new LambdaQueryWrapper<CustomerFollowUp>()
-//                            .eq(CustomerFollowUp::getTenantId, contract.getTenantId())
-//                            .eq(CustomerFollowUp::getCustomerId, contract.getCustomerId())
-//                            .eq(CustomerFollowUp::getHouseId, contract.getHouseId()) // 需确保带看记录有house_id
-//                            .orderByDesc(CustomerFollowUp::getFollowTime)
-//                            .last("LIMIT 1")
-//            );
-//            if (latestFollowUp != null) {
-//                latestFollowUp.setContractId(contractId);
-//                customerFollowUpService.updateById(latestFollowUp);
-//            }
-//        }
-//
-//        contract.setStatus(targetStatus);
-//        return updateById(contract);
-//    }
+        // 1. 再次校验房源归属（防并发问题）
+        House house = houseService.getById(houseId);
+        if (house == null || !house.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "房源不存在或不属于当前租户");
+        }
 
-    // 校验状态流转是否合法
-    private void validateStatusTransition(String currentStatus, String targetStatus) {
-        List<String> validTransitions = switch (currentStatus) {
-            case "SIGNED" -> List.of("EXECUTING", "TERMINATED");
-            case "EXECUTING" -> List.of("COMPLETED", "TERMINATED");
-            default -> List.of(); // 其他状态不允许流转
-        };
-        if (!validTransitions.contains(targetStatus)) {
-            throw new BusinessException(400, "不允许从[" + currentStatus + "]流转至[" + targetStatus + "]");
+        // 2. 确定目标状态（基于合同类型）
+        HouseStatus targetHouseStatus;
+        String changeReason;
+        if ("SALE".equals(contract.getContractType())) {
+            targetHouseStatus = HouseStatus.SOLD;
+            changeReason = "客户签约买卖合同（合同号：" + contract.getContractNo() + "）";
+        } else if ("RESERVED".equals(contract.getContractType())) {
+            targetHouseStatus = HouseStatus.RESERVED;
+            changeReason = "客户签约租赁合同（合同号：" + contract.getContractNo() + "）";
+        } else {
+            throw new BusinessException(400, "不支持的合同类型：" + contract.getContractType());
+        }
+
+        // 3. 避免重复更新
+        if (targetHouseStatus.equals(house.getStatus())) {
+            log.info("房源ID={}已处于{}状态，无需更新", houseId, targetHouseStatus);
+            return;
+        }
+
+        // 4. 更新房源状态
+        HouseStatus oldStatus = house.getStatus();
+        house.setStatus(targetHouseStatus);
+        house.setUpdateTime(LocalDateTime.now());
+        boolean updateSuccess = houseService.updateById(house);
+        if (!updateSuccess) {
+            throw new BusinessException(500, "更新房源状态失败，房源ID：" + houseId);
+        }
+
+        // 5. 记录状态变更日志
+        HouseStatusLog statusLog = new HouseStatusLog();
+        statusLog.setTenantId(tenantId);
+        statusLog.setHouseId(houseId);
+        statusLog.setStatusBefore(oldStatus.name());
+        statusLog.setStatusAfter(targetHouseStatus.name());
+        statusLog.setChangeReason(changeReason);
+        statusLog.setOperatorId(contract.getAgentId());
+        statusLog.setOperatorName(getAgentName(contract.getAgentId()));
+        statusLog.setCreateTime(LocalDateTime.now());
+        houseStatusLogService.save(statusLog);
+    }
+
+    /**
+     * 关联客户-房源的最近一次带看记录
+     */
+    private void linkVisitRecords(Contract contract, Long tenantId) {
+        VisitRecord latestVisit = visitRecordService.getOne(
+                new LambdaQueryWrapper<VisitRecord>()
+                        .eq(VisitRecord::getTenantId, tenantId)
+                        .eq(VisitRecord::getCustomerId, contract.getCustomerId())
+                        .eq(VisitRecord::getHouseId, contract.getHouseId())
+                        .orderByDesc(VisitRecord::getVisitTime)
+                        .last("LIMIT 1")
+        );
+
+        if (latestVisit != null && latestVisit.getContractId() == null) {
+            latestVisit.setContractId(contract.getId());
+            visitRecordService.updateById(latestVisit);
+            log.info("带看记录ID={}关联合同成功，合同ID：{}", latestVisit.getId(), contract.getId());
         }
     }
 
-    // 生成租户内唯一的合同编号
-    private String generateContractNo(Long tenantId) {
-        // 实现逻辑：结合租户ID、日期、自增序号
-        return "T" + tenantId + "_" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
-                + RandomUtil.randomNumbers(3);
+    /**
+     * 校验状态流转合法性（补充初始状态支持）
+     */
+    private void validateStatusTransition(String currentStatus, String targetStatus) {
+        List<String> validTransitions = switch (currentStatus) {
+            case "DRAFT" -> List.of("SIGNED", "TERMINATED"); // 草稿可签约或终止
+            case "SIGNED" -> List.of("EXECUTING", "TERMINATED"); // 已签约可执行或终止
+            case "EXECUTING" -> List.of("COMPLETED", "TERMINATED"); // 执行中可完成或终止
+            case "COMPLETED", "TERMINATED" -> List.of(); // 终态不可流转
+            default -> List.of();
+        };
+
+        if (!validTransitions.contains(targetStatus)) {
+            throw new BusinessException(400,
+                    String.format("不允许从[%s]状态流转至[%s]状态", currentStatus, targetStatus));
+        }
     }
 
+    /**
+     * 生成租户内唯一合同编号（优化：日期+自增序号减少重复）
+     */
+    private String generateContractNo(Long tenantId) {
+        // 实际生产环境建议使用数据库自增序列或Redis生成序号
+        String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String seq = String.format("%03d", RandomUtil.randomInt(1, 999));
+        return String.format("T%d_CONTRACT%s%s", tenantId, dateStr, seq);
+    }
+
+    /**
+     * 获取经纪人姓名
+     */
+    private String getAgentName(Long agentId) {
+        if (agentId == null) {
+            return "未知";
+        }
+        Agent agent = agentService.getById(agentId);
+        return agent != null ? agent.getName() : "未知";
+    }
 }

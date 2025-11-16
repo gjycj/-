@@ -29,6 +29,44 @@
         <result column="update_time" property="updateTime" />
     </resultMap>
 
+    <!-- 定义包含关联数据的ResultMap -->
+    <resultMap id="HouseWithRelationsResultMap" type="com.house.deed.pavilion.module.house.entity.House" extends="BaseResultMap">
+        <!-- 关联房东信息 -->
+        <collection property="landlords" ofType="com.house.deed.pavilion.module.houseLandlord.entity.HouseLandlord"
+                    select="com.house.deed.pavilion.module.houseLandlord.mapper.HouseLandlordMapper.getByHouseId"
+                    column="id"/>
+
+        <!-- 关联标签信息 -->
+        <collection property="tags" ofType="com.house.deed.pavilion.module.houseTag.entity.HouseTag"
+                    select="com.house.deed.pavilion.module.houseTag.mapper.HouseTagMapper.getByHouseId"
+                    column="id"/>
+    </resultMap>
+
+    <!-- 添加 selectHousePage 对应的 SQL 语句 -->
+    <select id="selectHousePage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM house
+        WHERE tenant_id = #{tenantId}
+        <!-- 房号模糊查询（若 houseNo 不为空） -->
+        <if test="houseNo != null and houseNo != ''">
+            AND house_no LIKE CONCAT('%', #{houseNo}, '%')
+        </if>
+        <!-- 状态精确匹配（若 status 不为空） -->
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        <!-- MyBatis-Plus 会自动拼接分页参数（LIMIT/OFFSET 等） -->
+    </select>
+
+    <select id="getHousePage" resultMap="HouseWithRelationsResultMap">
+        SELECT h.* FROM house h
+        WHERE h.tenant_id = #{tenantId}
+        <if test="houseNo != null and houseNo != ''">AND h.house_no LIKE CONCAT('%', #{houseNo}, '%')</if>
+        <if test="status != null and status != ''">AND h.status = #{status}</if>
+        LIMIT #{page.offset}, #{page.size}
+    </select>
+
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
         id, tenant_id, building_id, house_no, house_type, area, inside_area, floor, total_floor, orientation, decoration, property_right, property_right_cert_no, property_right_years, mortgage_status, mortgage_details, price, transaction_type, status, description, create_agent_id, create_time, update_time

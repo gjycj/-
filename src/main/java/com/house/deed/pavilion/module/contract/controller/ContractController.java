@@ -4,7 +4,13 @@ import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.IContractService;
+import com.house.deed.pavilion.module.customerFollowUp.entity.CustomerFollowUp;
+import com.house.deed.pavilion.module.customerFollowUp.service.ICustomerFollowUpService;
+import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
+import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
 import jakarta.annotation.Resource;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +24,12 @@ public class ContractController {
 
     @Resource
     private IContractService contractService;
+
+    @Resource
+    private ICustomerFollowUpService customerFollowUpService;
+
+    @Resource
+    private IVisitRecordService visitRecordService;
 
     /**
      * 创建交易合同（自动校验房源和客户归属）
@@ -60,5 +72,37 @@ public class ContractController {
 
         boolean success = contractService.updateContractStatus(id, targetStatus);
         return ResultDTO.success(success);
+    }
+
+    // 新增：查询合同关联的带看记录（包含VisitRecord和CustomerFollowUp）
+    @GetMapping("/{contractId}/visit-records")
+    public ResultDTO<ContractVisitRecordsVO> getVisitRecordsByContractId(@PathVariable Long contractId) {
+        Contract contract = contractService.getById(contractId);
+        if (contract == null) {
+            throw new BusinessException(404, "合同不存在");
+        }
+        Long tenantId = contract.getTenantId();
+
+        // 查询带看记录
+        List<VisitRecord> visitRecords = visitRecordService.getByContractId(contractId, tenantId);
+        // 查询跟进记录
+        List<CustomerFollowUp> followUps = customerFollowUpService.getByContractId(contractId, tenantId);
+
+        ContractVisitRecordsVO result = new ContractVisitRecordsVO();
+        result.setContractId(contractId);
+        result.setVisitRecords(visitRecords);
+        result.setFollowUps(followUps);
+        return ResultDTO.success(result);
+    }
+
+    // 内部VO类：封装合同关联的带看记录
+    @Setter
+    @Getter
+    public static class ContractVisitRecordsVO {
+        // getter/setter
+        private Long contractId;
+        private List<VisitRecord> visitRecords;
+        private List<CustomerFollowUp> followUps;
+
     }
 }
