@@ -8,6 +8,7 @@
         <result column="tenant_id" property="tenantId" />
         <result column="house_id" property="houseId" />
         <result column="customer_id" property="customerId" />
+        <result column="contract_id" property="contractId" />
         <result column="agent_id" property="agentId" />
         <result column="visit_time" property="visitTime" />
         <result column="visit_type" property="visitType" />

@@ -36,6 +36,10 @@ public class VisitRecord implements Serializable {
     @TableField("tenant_id")
     private Long tenantId;
 
+    // 新增合同关联字段
+    @TableField("contract_id")
+    private Long contractId; // 关联合同ID（已签约时不为空）
+
     /**
      * 房源ID（关联house表，同租户）
      */

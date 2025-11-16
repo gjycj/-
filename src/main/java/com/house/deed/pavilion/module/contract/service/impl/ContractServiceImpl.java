@@ -1,6 +1,7 @@
 package com.house.deed.pavilion.module.contract.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.TenantContext;
@@ -9,9 +10,12 @@ import com.house.deed.pavilion.module.contract.mapper.ContractMapper;
 import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.service.ICustomerService;
+import com.house.deed.pavilion.module.customerFollowUp.service.ICustomerFollowUpService;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.service.IHouseService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
+import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,10 +34,15 @@ import java.util.List;
 @Service
 public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> implements IContractService {
 
-    @Autowired
+    @Resource
     private IHouseService houseService;
-    @Autowired
+    @Resource
     private ICustomerService customerService;
+    @Resource
+    private ICustomerFollowUpService customerFollowUpService; // 注入带看记录服务
+    @Resource
+    private IVisitRecordService visitRecordService; // 新增：注入带看记录服务
+
 
     @Override
     @Transactional
@@ -69,11 +78,65 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         if (contract == null) {
             throw new BusinessException(404, "合同不存在");
         }
-        // 校验状态流转合法性（例如：SIGNED→EXECUTING→COMPLETED）
+        // 校验状态流转合法性
         validateStatusTransition(contract.getStatus(), targetStatus);
+
+        // 当状态变为SIGNED时，关联对应的带看记录
+        if ("SIGNED".equals(targetStatus)) {
+            Long tenantId = contract.getTenantId();
+            Long customerId = contract.getCustomerId();
+            Long houseId = contract.getHouseId();
+
+            // 查询该客户+房源的最近带看记录
+            VisitRecord latestVisit = visitRecordService.getOne(
+                    new LambdaQueryWrapper<VisitRecord>()
+                            .eq(VisitRecord::getTenantId, tenantId)
+                            .eq(VisitRecord::getCustomerId, customerId)
+                            .eq(VisitRecord::getHouseId, houseId)
+                            .orderByDesc(VisitRecord::getVisitTime)
+                            .last("LIMIT 1")
+            );
+
+            if (latestVisit != null) {
+                latestVisit.setContractId(contractId);
+                visitRecordService.updateById(latestVisit);
+            }
+        }
+
         contract.setStatus(targetStatus);
         return updateById(contract);
     }
+
+
+//    @Transactional
+//    public boolean updateContractStatus(Long contractId, String targetStatus) {
+//        Contract contract = getById(contractId);
+//        if (contract == null) {
+//            throw new BusinessException(404, "合同不存在");
+//        }
+//        // 校验状态流转合法性
+//        validateStatusTransition(contract.getStatus(), targetStatus);
+//
+//        // 当状态变为SIGNED时，关联带看记录
+//        if ("SIGNED".equals(targetStatus)) {
+//            // 查询该客户+房源的最近带看记录
+//            CustomerFollowUp latestFollowUp = customerFollowUpService.getOne(
+//                    new LambdaQueryWrapper<CustomerFollowUp>()
+//                            .eq(CustomerFollowUp::getTenantId, contract.getTenantId())
+//                            .eq(CustomerFollowUp::getCustomerId, contract.getCustomerId())
+//                            .eq(CustomerFollowUp::getHouseId, contract.getHouseId()) // 需确保带看记录有house_id
+//                            .orderByDesc(CustomerFollowUp::getFollowTime)
+//                            .last("LIMIT 1")
+//            );
+//            if (latestFollowUp != null) {
+//                latestFollowUp.setContractId(contractId);
+//                customerFollowUpService.updateById(latestFollowUp);
+//            }
+//        }
+//
+//        contract.setStatus(targetStatus);
+//        return updateById(contract);
+//    }
 
     // 校验状态流转是否合法
     private void validateStatusTransition(String currentStatus, String targetStatus) {

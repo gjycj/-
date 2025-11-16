@@ -3,6 +3,8 @@ package com.house.deed.pavilion.module.customerFollowUp.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.house.deed.pavilion.module.customerFollowUp.entity.CustomerFollowUp;
 
+import java.util.List;
+
 /**
  * <p>
  * 客户跟进记录表（租户级数据） 服务类
@@ -12,5 +14,6 @@ import com.house.deed.pavilion.module.customerFollowUp.entity.CustomerFollowUp;
  * @since 2025-11-07
  */
 public interface ICustomerFollowUpService extends IService<CustomerFollowUp> {
-
+    // 新增：通过合同ID查询带看记录
+    List<CustomerFollowUp> getByContractId(Long contractId, Long tenantId);
 }

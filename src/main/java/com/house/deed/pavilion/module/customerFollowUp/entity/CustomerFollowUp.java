@@ -42,6 +42,12 @@ public class CustomerFollowUp implements Serializable {
     @TableField("customer_id")
     private Long customerId;
 
+    @TableField("contract_id")
+    private Long contractId; // 关联合同ID（可为null，未签约时为空）
+
+    @TableField("house_id")
+    private Long houseId;
+
     /**
      * 跟进经纪人ID（关联agent表，同租户）
      */
