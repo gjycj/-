@@ -15,4 +15,12 @@ public interface IContractService extends IService<Contract> {
 
     boolean createContract(Contract contract);
 
+    /**
+     * 更新合同状态（带流转校验）
+     * @param contractId 合同ID
+     * @param targetStatus 目标状态（SIGNED/EXECUTING/COMPLETED/TERMINATED）
+     * @return 是否更新成功
+     */
+    boolean updateContractStatus(Long contractId, String targetStatus);
+
 }

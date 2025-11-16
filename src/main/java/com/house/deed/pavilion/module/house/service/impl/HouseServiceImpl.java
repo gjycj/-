@@ -106,7 +106,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
      * 房源录入核心方法（事务保证原子性）
      * 包含参数校验、关联数据校验、数据转换、主数据保存、关联数据同步及日志记录
      *
-     * @param dto           房源新增DTO，包含房源基本信息及关联数据ID
+     * @param dto            房源新增DTO，包含房源基本信息及关联数据ID
      * @param currentAgentId 当前操作经纪人ID（用于权限校验及日志记录）
      * @return 新增房源的ID
      * @throws BusinessException 当参数无效、关联数据不存在或保存失败时抛出
@@ -199,7 +199,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
      * 关联数据有效性校验
      * 校验楼盘、楼栋、经纪人、房东、标签等关联数据的存在性及租户权限
      *
-     * @param dto           房源新增DTO
+     * @param dto            房源新增DTO
      * @param currentAgentId 当前操作经纪人ID
      * @throws BusinessException 当关联数据不存在或无权访问时抛出
      */
@@ -253,7 +253,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
      * DTO转换为实体对象
      * 基于通用转换工具实现基础字段映射，补充租户ID、默认值等业务字段
      *
-     * @param dto           房源新增DTO
+     * @param dto            房源新增DTO
      * @param currentAgentId 当前操作经纪人ID
      * @return 转换后的House实体
      */
@@ -343,7 +343,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
      * 记录操作日志与状态变更日志
      * 用于追踪房源创建操作及初始状态，支持后续审计与溯源
      *
-     * @param house         新增的房源实体
+     * @param house          新增的房源实体
      * @param currentAgentId 当前操作经纪人ID
      */
     private void recordLogs(House house, Long currentAgentId) {
@@ -414,7 +414,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
     /**
      * 从请求头中提取IP（过滤unknown及空值）
      *
-     * @param request 请求对象
+     * @param request    请求对象
      * @param headerName 头名称
      * @return 有效IP或null
      */
@@ -431,9 +431,9 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
      * 分页查询房源列表（支持按房号模糊查询和状态筛选）
      * 自动通过多租户插件添加租户ID条件，确保数据隔离
      *
-     * @param page     分页参数（页码、每页条数）
-     * @param houseNo  房号（模糊查询，可为null）
-     * @param status   房源状态（精确匹配，可为null）
+     * @param page    分页参数（页码、每页条数）
+     * @param houseNo 房号（模糊查询，可为null）
+     * @param status  房源状态（精确匹配，可为null）
      * @return 分页查询结果（包含房源列表及分页信息）
      */
     @Override

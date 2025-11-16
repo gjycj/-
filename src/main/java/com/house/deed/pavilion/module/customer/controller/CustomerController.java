@@ -8,6 +8,8 @@ import com.house.deed.pavilion.module.customer.service.ICustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 /**
  * 客户信息控制器
  */
@@ -28,6 +30,19 @@ public class CustomerController {
             throw new BusinessException(400, "客户姓名和电话不能为空");
         }
         boolean success = customerService.save(customer);
+        return ResultDTO.success(success);
+    }
+
+    /**
+     * 更新客户状态
+     */
+    @PatchMapping("/{id}/status")
+    public ResultDTO<Boolean> updateCustomerStatus(
+            @PathVariable Long id,
+            @RequestParam String targetStatus,
+            @RequestParam Long operatorId) {
+
+        boolean success = customerService.updateStatus(id, targetStatus, operatorId);
         return ResultDTO.success(success);
     }
 
@@ -80,5 +95,34 @@ public class CustomerController {
         }
         boolean success = customerService.removeById(id);
         return ResultDTO.success(success);
+    }
+
+    /**
+     * 带条件的客户分页查询
+     */
+    @GetMapping("/page/condition")
+    public ResultDTO<Page<Customer>> getCustomerPageByCondition(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) Long intendedRegionId,
+            @RequestParam(required = false) BigDecimal priceMin,
+            @RequestParam(required = false) BigDecimal priceMax,
+            @RequestParam(required = false) String customerType,
+            @RequestParam(required = false) String status) {
+
+        // 校验状态参数合法性
+        if (status != null && !("ACTIVE".equals(status) || "DEALED".equals(status) || "DORMANT".equals(status))) {
+            throw new BusinessException(400, "状态只能是ACTIVE/DEALED/DORMANT");
+        }
+
+        // 校验客户类型参数合法性
+        if (customerType != null && !("ORDINARY".equals(customerType) || "VIP".equals(customerType) || "INVEST".equals(customerType))) {
+            throw new BusinessException(400, "客户类型只能是ORDINARY/VIP/INVEST");
+        }
+
+        Page<Customer> page = new Page<>(pageNum, pageSize);
+        Page<Customer> resultPage = customerService.getCustomerPageByCondition(
+                page, intendedRegionId, priceMin, priceMax, customerType, status);
+        return ResultDTO.success(resultPage);
     }
 }
