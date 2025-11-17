@@ -9,8 +9,11 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -26,8 +29,17 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "维修工单", description = "维修工单CRUD及状态管理接口")
 public class MaintenanceOrderController {
 
-    @Autowired
+    @Resource
     private IMaintenanceOrderService maintenanceOrderService;
+
+    /**
+     * 通过房源ID查询维修工单
+     */
+    @GetMapping("/by-house/{houseId}")
+    public ResultDTO<List<MaintenanceOrder>> getByHouseId(@PathVariable Long houseId) {
+        List<MaintenanceOrder> orders = maintenanceOrderService.getByHouseId(houseId);
+        return ResultDTO.success(orders);
+    }
 
     /**
      * 创建维修工单

@@ -51,6 +51,16 @@ public class VisitRecordController {
     @Resource
     private IAgentService agentService;
 
+    /**
+     * 通过房源ID查询带看记录
+     */
+    @GetMapping("/by-house")
+    public ResultDTO<List<VisitRecord>> getByHouseId(@RequestParam Long houseId) {
+        Long tenantId = TenantContext.getTenantId();
+        List<VisitRecord> visitRecords = visitRecordService.getByHouseId(houseId, tenantId);
+        return ResultDTO.success(visitRecords);
+    }
+
     // 新增：通过合同ID查询带看记录
     @GetMapping("/by-contract")
     public ResultDTO<List<VisitRecord>> getByContractId(@RequestParam Long contractId) {

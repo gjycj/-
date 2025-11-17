@@ -11,6 +11,7 @@ import com.house.deed.pavilion.module.contractAttachment.entity.ContractAttachme
 import com.house.deed.pavilion.module.contractAttachment.mapper.ContractAttachmentMapper;
 import com.house.deed.pavilion.module.contractAttachment.service.IContractAttachmentService;
 import jakarta.annotation.Resource;
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;

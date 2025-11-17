@@ -44,6 +44,17 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
     @Resource
     private IContractService contractService;
 
+    @Override
+    public List<MaintenanceOrder> getByHouseId(Long houseId) {
+        ValidateUtil.notNull(houseId, "房源ID不能为空");
+        Long tenantId = TenantContext.getTenantId();
+        ValidateUtil.notNull(tenantId, "租户上下文获取失败");
+
+        return baseMapper.selectList(new LambdaQueryWrapper<MaintenanceOrder>()
+                .eq(MaintenanceOrder::getHouseId, houseId)
+                .eq(MaintenanceOrder::getTenantId, tenantId));
+    }
+
 
     /**
      * 创建维修工单（事务保证原子性）

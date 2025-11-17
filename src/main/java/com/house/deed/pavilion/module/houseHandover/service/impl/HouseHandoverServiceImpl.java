@@ -1,5 +1,6 @@
 package com.house.deed.pavilion.module.houseHandover.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * <p>
@@ -59,5 +61,68 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
                 .eq("house_id", houseId)
                 .orderByDesc("handover_time");
         return baseMapper.selectPage(page, queryWrapper);
+    }
+
+    // 新增：按ID查询单个交接记录（带租户校验）
+    @Override
+    public HouseHandover getById(Long id) {
+        Long tenantId = TenantContext.getTenantId();
+        HouseHandover handover = baseMapper.selectById(id);
+        if (handover == null || !handover.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "交接记录不存在或无权访问");
+        }
+        return handover;
+    }
+
+    // 新增：更新交接记录
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateHandover(Long id, HouseHandoverDTO dto) {
+        // 校验记录存在性及租户归属
+        if (!existsByIdAndTenant(id)) {
+            throw new BusinessException(404, "交接记录不存在或无权访问");
+        }
+
+        // 校验房源一致性（不允许跨房源更新）
+        if (!dto.getHouseId().equals(baseMapper.selectById(id).getHouseId())) {
+            throw new BusinessException(400, "不允许修改房源ID");
+        }
+
+        // DTO转实体并更新
+        HouseHandover handover = BeanConvertUtil.convert(dto, HouseHandover.class);
+        handover.setId(id);
+        handover.setTenantId(TenantContext.getTenantId()); // 强制绑定当前租户
+        return baseMapper.updateById(handover) > 0;
+    }
+
+    // 新增：删除交接记录
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteHandover(Long id) {
+        if (!existsByIdAndTenant(id)) {
+            throw new BusinessException(404, "交接记录不存在或无权访问");
+        }
+        return baseMapper.deleteById(id) > 0;
+    }
+
+    // 新增：按合同ID查询交接记录
+    @Override
+    public List<HouseHandover> getByContractId(Long contractId) {
+        Long tenantId = TenantContext.getTenantId();
+        LambdaQueryWrapper<HouseHandover> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(HouseHandover::getTenantId, tenantId)
+                .eq(HouseHandover::getContractId, contractId)
+                .orderByDesc(HouseHandover::getHandoverTime);
+        return baseMapper.selectList(queryWrapper);
+    }
+
+    // 新增：校验交接记录是否存在且属于当前租户
+    @Override
+    public boolean existsByIdAndTenant(Long id) {
+        Long tenantId = TenantContext.getTenantId();
+        int count = Math.toIntExact(baseMapper.selectCount(new LambdaQueryWrapper<HouseHandover>()
+                .eq(HouseHandover::getId, id)
+                .eq(HouseHandover::getTenantId, tenantId)));
+        return count > 0;
     }
 }

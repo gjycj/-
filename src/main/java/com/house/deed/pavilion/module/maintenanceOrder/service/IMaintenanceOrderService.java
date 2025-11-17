@@ -3,6 +3,8 @@ package com.house.deed.pavilion.module.maintenanceOrder.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
 
+import java.util.List;
+
 /**
  * <p>
  * 房源维修工单表（租户级数据） 服务类
@@ -34,4 +36,11 @@ public interface IMaintenanceOrderService extends IService<MaintenanceOrder> {
      * @return 是否更新成功
      */
     boolean updateOrderStatus(MaintenanceOrder updateInfo);
+
+    /**
+     * 通过房源ID查询维修工单（带租户隔离）
+     * @param houseId 房源ID
+     * @return 维修工单列表
+     */
+    List<MaintenanceOrder> getByHouseId(Long houseId);
 }

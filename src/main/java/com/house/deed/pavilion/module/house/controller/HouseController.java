@@ -4,10 +4,17 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.TenantContext;
+import com.house.deed.pavilion.module.contract.entity.Contract;
+import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.house.dto.HouseAddDTO;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.repository.TransactionType;
 import com.house.deed.pavilion.module.house.service.IHouseService;
+import com.house.deed.pavilion.module.house.vo.HouseLifecycleVO;
+import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
+import com.house.deed.pavilion.module.maintenanceOrder.service.IMaintenanceOrderService;
+import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
+import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,6 +27,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 
 /**
@@ -37,6 +45,40 @@ public class HouseController {
 
     @Resource
     private IHouseService houseService;
+
+    @Resource
+    private IVisitRecordService visitRecordService;
+    @Resource
+    private IContractService contractService;
+    @Resource
+    private IMaintenanceOrderService maintenanceOrderService;
+
+    /**
+     * 查询房源全生命周期记录（带看+合同+维修）
+     */
+    @GetMapping("/{houseId}/lifecycle")
+    public ResultDTO<HouseLifecycleVO> getHouseLifecycle(@PathVariable Long houseId) {
+        // 1. 校验房源存在性及租户归属
+        Long tenantId = TenantContext.getTenantId();
+        House house = houseService.getById(houseId);
+        if (house == null || !house.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "房源不存在或无权访问");
+        }
+
+        // 2. 查询关联数据
+        List<VisitRecord> visitRecords = visitRecordService.getByHouseId(houseId, tenantId);
+        List<Contract> contracts = contractService.getByHouseId(houseId);
+        List<MaintenanceOrder> maintenanceOrders = maintenanceOrderService.getByHouseId(houseId);
+
+        // 3. 封装结果
+        HouseLifecycleVO vo = new HouseLifecycleVO();
+        vo.setHouseId(houseId);
+        vo.setVisitRecords(visitRecords);
+        vo.setContracts(contracts);
+        vo.setMaintenanceOrders(maintenanceOrders);
+
+        return ResultDTO.success(vo);
+    }
 
     /**
      * 房源录入接口

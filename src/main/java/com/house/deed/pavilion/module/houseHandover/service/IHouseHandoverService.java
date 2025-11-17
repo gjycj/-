@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
 import com.house.deed.pavilion.module.houseHandover.repository.HouseHandoverDTO;
 
+import java.util.List;
+
 /**
  * <p>
  * 房屋交接记录表（租户级数据） 服务类
@@ -28,4 +30,19 @@ public interface IHouseHandoverService extends IService<HouseHandover> {
      * @return 分页结果
      */
     Page<HouseHandover> getHandoverPageByHouse(Page<HouseHandover> page, Long houseId);
+
+    // 新增：按ID查询单个交接记录
+    HouseHandover getById(Long id);
+
+    // 新增：更新交接记录
+    boolean updateHandover(Long id, HouseHandoverDTO dto);
+
+    // 新增：删除交接记录
+    boolean deleteHandover(Long id);
+
+    // 新增：按合同ID查询交接记录
+    List<HouseHandover> getByContractId(Long contractId);
+
+    // 新增：校验交接记录是否存在且属于当前租户
+    boolean existsByIdAndTenant(Long id);
 }

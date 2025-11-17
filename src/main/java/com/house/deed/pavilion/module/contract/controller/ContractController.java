@@ -11,6 +11,7 @@ import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
 import jakarta.annotation.Resource;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +33,39 @@ public class ContractController {
     private IVisitRecordService visitRecordService;
 
     /**
+     * 通过房源ID查询关联合同
+     */
+    @GetMapping("/by-house/{houseId}")
+    public ResultDTO<List<Contract>> getByHouseId(@PathVariable Long houseId) {
+        List<Contract> contracts = contractService.getByHouseId(houseId);
+        return ResultDTO.success(contracts);
+    }
+
+    /**
+     * 删除合同
+     */
+    @DeleteMapping("/{id}")
+    public ResultDTO<Boolean> deleteContract(@PathVariable Long id) {
+        boolean success = contractService.removeContract(id);
+        return ResultDTO.success(success);
+    }
+
+    /**
+     * 更新合同非状态字段（金额、付款方式等）
+     */
+    @PutMapping("/{id}")
+    public ResultDTO<Boolean> updateContract(
+            @PathVariable Long id,
+            @RequestBody Contract contract) {
+        // 校验ID一致性
+        if (!id.equals(contract.getId())) {
+            throw new BusinessException(400, "路径ID与请求体ID不匹配");
+        }
+        boolean success = contractService.updateContract(contract);
+        return ResultDTO.success(success);
+    }
+
+    /**
      * 创建交易合同（自动校验房源和客户归属）
      */
     @PostMapping("/createContract")
@@ -45,13 +79,13 @@ public class ContractController {
     }
 
     /**
-     * 查询合同详情
+     * 查询合同详情（补充租户隔离）
      */
     @GetMapping("/{id}")
     public ResultDTO<Contract> getContractById(@PathVariable Long id) {
-        Contract contract = contractService.getById(id);
+        Contract contract = contractService.getByIdWithTenant(id); // 替换原getById
         if (contract == null) {
-            throw new BusinessException(404, "合同不存在");
+            throw new BusinessException(404, "合同不存在或无权访问");
         }
         return ResultDTO.success(contract);
     }
