@@ -1,88 +1,126 @@
 package com.house.deed.pavilion.common.util;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.module.contract.entity.Contract;
+import com.house.deed.pavilion.module.contract.mapper.ContractMapper;
 import com.house.deed.pavilion.module.contractAttachment.entity.ContractAttachment;
-import com.house.deed.pavilion.module.contractAttachment.service.IContractAttachmentService;
+import com.house.deed.pavilion.module.contractAttachment.mapper.ContractAttachmentMapper;
 import com.house.deed.pavilion.module.contractLeaseTerms.entity.ContractLeaseTerms;
-import com.house.deed.pavilion.module.contractLeaseTerms.service.IContractLeaseTermsService;
-import com.house.deed.pavilion.module.customerFollowUp.service.ICustomerFollowUpService;
-import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
+import com.house.deed.pavilion.module.contractLeaseTerms.mapper.ContractLeaseTermsMapper;
+import com.house.deed.pavilion.module.customerFollowUp.entity.CustomerFollowUp;
+import com.house.deed.pavilion.module.customerFollowUp.mapper.CustomerFollowUpMapper;
+import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
+import com.house.deed.pavilion.module.visitRecord.mapper.VisitRecordMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 
 /**
- * 合同校验工具类（解耦服务间直接依赖）
+ * 合同校验工具类（基于Mapper解耦，消除服务间依赖）
  */
 @Component
 public class ContractValidationUtil {
 
-//    @Resource
-//    private IContractLeaseTermsService contractLeaseTermsService;
+    @Resource
+    private ContractLeaseTermsMapper contractLeaseTermsMapper;
 
     @Resource
-    private IContractAttachmentService attachmentService;
+    private ContractAttachmentMapper attachmentMapper;
 
     @Resource
-    private IVisitRecordService visitRecordService;
+    private VisitRecordMapper visitRecordMapper;
 
     @Resource
-    private ICustomerFollowUpService followUpService;
+    private CustomerFollowUpMapper followUpMapper;
 
-//    public ContractLeaseTerms validateContractLeaseTerms(Long contractId, Long tenantId) {
-//        ContractLeaseTerms contractLeaseTerms = contractLeaseTermsService.getByContractId(contractId);
-//        if (contractLeaseTerms != null && contractLeaseTerms.getTenantId().equals(tenantId)) {
-//            throw new BusinessException(400, "租赁合同存在附加条款，无法删除");
-//        }
-//        return null;
-//    }
+    @Resource
+    private ContractMapper contractMapper;
 
     /**
-     * 检查合同是否有关联附件
-     * @param contractId 合同ID
-     * @param tenantId 租户ID（多租户隔离）
-     * @return 存在关联附件返回true，否则返回false
+     * 校验租赁合同附加条款存在性
+     */
+    public ContractLeaseTerms validateContractLeaseTerms(Long contractId, Long tenantId) {
+        ContractLeaseTerms terms = contractLeaseTermsMapper.selectOne(
+                new LambdaQueryWrapper<ContractLeaseTerms>()
+                        .eq(ContractLeaseTerms::getContractId, contractId)
+                        .eq(ContractLeaseTerms::getTenantId, tenantId)
+        );
+        if (terms != null) {
+            throw new BusinessException(400, "租赁合同存在附加条款，无法删除");
+        }
+        return null;
+    }
+
+    /**
+     * 校验合同存在性及租户归属（直接操作Mapper）
+     */
+    public Contract validateContract(Long contractId, Long tenantId) {
+        Contract contract = contractMapper.selectById(contractId);
+        if (contract == null || !contract.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "合同不存在或无权访问");
+        }
+        return contract;
+    }
+
+    /**
+     * 检查合同是否有关联附件（基于Mapper查询）
      */
     public boolean hasRelatedAttachments(Long contractId, Long tenantId) {
-        List<ContractAttachment> attachments = attachmentService.getByContractId(contractId);
-        // 注意：需确保attachmentService.getByContractId方法已实现租户隔离（参考之前的代码，该方法已通过TenantContext获取租户ID）
-        return !attachments.isEmpty();
+        int count = Math.toIntExact(attachmentMapper.selectCount(
+                new LambdaQueryWrapper<ContractAttachment>()
+                        .eq(ContractAttachment::getContractId, contractId)
+                        .eq(ContractAttachment::getTenantId, tenantId)
+        ));
+        return count > 0;
     }
 
     /**
      * 检查合同是否有关联带看记录
      */
     public boolean hasRelatedVisitRecords(Long contractId, Long tenantId) {
-        List<?> visitRecords = visitRecordService.getByContractId(contractId, tenantId);
-        return !visitRecords.isEmpty();
+        int count = Math.toIntExact(visitRecordMapper.selectCount(
+                new LambdaQueryWrapper<VisitRecord>()
+                        .eq(VisitRecord::getContractId, contractId)
+                        .eq(VisitRecord::getTenantId, tenantId)
+        ));
+        return count > 0;
     }
 
     /**
      * 检查合同是否有关联跟进记录
      */
     public boolean hasRelatedFollowUps(Long contractId, Long tenantId) {
-        List<?> followUps = followUpService.getByContractId(contractId, tenantId);
-        return !followUps.isEmpty();
+        int count = Math.toIntExact(followUpMapper.selectCount(
+                new LambdaQueryWrapper<CustomerFollowUp>()
+                        .eq(CustomerFollowUp::getContractId, contractId)
+                        .eq(CustomerFollowUp::getTenantId, tenantId)
+        ));
+        return count > 0;
     }
 
     /**
-     * 统一校验：删除合同前检查是否存在关联数据（防止误删）
-     * 若存在关联数据则抛出异常
+     * 统一校验：删除合同前检查关联数据（全Mapper实现）
      */
-    public void validateNoDependenciesBeforeDelete(Long contractId, Long tenantId) {
-        // 检查附件
+    public void validateNoDependenciesBeforeDelete(Long contractId) {
+        Long tenantId = TenantContext.getTenantId();
+        // 1. 先校验合同本身存在性
+        validateContract(contractId, tenantId);
+
+        // 2. 检查各类关联数据
         if (hasRelatedAttachments(contractId, tenantId)) {
             throw new BusinessException(400, "合同存在关联附件，无法删除");
         }
-        // 检查带看记录
         if (hasRelatedVisitRecords(contractId, tenantId)) {
             throw new BusinessException(400, "合同存在关联带看记录，无法删除");
         }
-        // 检查跟进记录
         if (hasRelatedFollowUps(contractId, tenantId)) {
             throw new BusinessException(400, "合同存在关联跟进记录，无法删除");
+        }
+        // 3. 检查租赁附加条款（仅租赁合同需要）
+        Contract contract = contractMapper.selectById(contractId);
+        if ("RENT".equals(contract.getContractType())) {
+            validateContractLeaseTerms(contractId, tenantId);
         }
     }
 }

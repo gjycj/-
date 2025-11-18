@@ -6,13 +6,24 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.TenantContext;
+import com.house.deed.pavilion.module.contract.entity.Contract;
+import com.house.deed.pavilion.module.contract.mapper.ContractMapper;
+import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.mapper.CustomerMapper;
 import com.house.deed.pavilion.module.customer.service.ICustomerService;
+import com.house.deed.pavilion.module.customer.vo.CustomerFullFlowVO;
+import com.house.deed.pavilion.module.customerFollowUp.entity.CustomerFollowUp;
+import com.house.deed.pavilion.module.customerFollowUp.service.ICustomerFollowUpService;
+import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
+import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
+import jakarta.annotation.Resource;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * <p>
@@ -24,6 +35,52 @@ import java.time.LocalDateTime;
  */
 @Service
 public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> implements ICustomerService {
+
+    @Resource
+    private IVisitRecordService visitRecordService;
+
+    @Resource
+    private ContractMapper contractMapper;
+
+    @Resource
+    private ICustomerFollowUpService followUpService;
+
+    // 在CustomerServiceImpl中新增该方法
+    @Override
+    public CustomerFullFlowVO getFullFlowByCustomerId(Long customerId, Long tenantId) {
+        // 1. 校验客户存在性及租户归属
+        Customer customer = getById(customerId);
+        if (customer == null || !customer.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "客户不存在或无权访问");
+        }
+
+        // 2. 查询关联数据
+        // 2.1 查询带看记录（需依赖IVisitRecordService的getByCustomerId方法）
+        List<VisitRecord> visitRecords = visitRecordService.getByCustomerId(customerId, tenantId);
+
+        // 2.2 查询合同记录（需依赖IContractService的getByCustomerId方法）
+        List<Contract> contracts = contractMapper.selectList(
+                Wrappers.<Contract>lambdaQuery().eq(Contract::getCustomerId, customerId).eq(Contract::getTenantId, tenantId)
+        );
+
+        // 2.3 查询跟进记录（此处即为用户提到的代码）
+        Page<CustomerFollowUp> followUpPage = followUpService.getByCustomerId(
+                new Page<>(1, Integer.MAX_VALUE),  // 第一页，最大条数获取全量
+                customerId,
+                tenantId
+        );
+        List<CustomerFollowUp> followUps = followUpPage.getRecords();
+
+        // 3. 封装VO对象
+        CustomerFullFlowVO vo = new CustomerFullFlowVO();
+        BeanUtils.copyProperties(customer, vo); // 复制客户基本信息
+        vo.setVisitRecords(visitRecords);
+        vo.setContracts(contracts);
+        vo.setFollowUps(followUps);
+
+        return vo;
+    }
+
     @Override
     public boolean existsById(Long id) {
         return this.exists(Wrappers.<Customer>lambdaQuery().eq(Customer::getId, id));

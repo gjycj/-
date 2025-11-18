@@ -2,9 +2,12 @@ package com.house.deed.pavilion.module.customer.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.customer.entity.Customer;
+import com.house.deed.pavilion.module.customer.vo.CustomerFullFlowVO;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * <p>
@@ -16,6 +19,8 @@ import java.math.BigDecimal;
  */
 public interface ICustomerService extends IService<Customer> {
     boolean existsById(Long id);
+
+    CustomerFullFlowVO getFullFlowByCustomerId(Long customerId, Long tenantId);
 
     /**
      * 带条件的客户分页查询

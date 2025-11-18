@@ -2,18 +2,15 @@ package com.house.deed.pavilion.module.contractAttachment.service.impl;
 
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.ContractValidationUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
-import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.contractAttachment.entity.ContractAttachment;
 import com.house.deed.pavilion.module.contractAttachment.mapper.ContractAttachmentMapper;
 import com.house.deed.pavilion.module.contractAttachment.service.IContractAttachmentService;
 import jakarta.annotation.Resource;
-import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,8 +31,8 @@ import java.util.List;
 @Service
 public class ContractAttachmentServiceImpl extends ServiceImpl<ContractAttachmentMapper, ContractAttachment> implements IContractAttachmentService {
 
-//    @Resource
-//    private ContractValidationUtil contractValidationUtil;
+    @Resource
+    private ContractValidationUtil contractValidationUtil;
 
     @Value("${file.upload.path}")
     private String uploadPath;
@@ -45,9 +42,9 @@ public class ContractAttachmentServiceImpl extends ServiceImpl<ContractAttachmen
         Long tenantId = TenantContext.getTenantId();
 
         // 1. 校验合同存在性及租户归属
-        LambdaQueryWrapper<Contract> contract = Wrappers.<Contract>lambdaQuery().eq(Contract::getId, contractId);
-        Contract entity = contract.getEntity();
-        if (entity == null || !entity.getTenantId().equals(tenantId)) {
+        // 校验合同合法性（通过领域服务）
+        Contract contract = contractValidationUtil.validateContract(contractId, tenantId);// 替代原contractService调用
+        if (contract == null || !contract.getTenantId().equals(tenantId)) {
             throw new BusinessException(404, "合同不存在或无权访问");
         }
 

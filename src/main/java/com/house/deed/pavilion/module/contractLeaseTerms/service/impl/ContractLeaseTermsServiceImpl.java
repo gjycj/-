@@ -3,12 +3,9 @@ package com.house.deed.pavilion.module.contractLeaseTerms.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
-import com.house.deed.pavilion.common.util.ContractLeaseUtil;
-import com.house.deed.pavilion.common.util.TempValidationUtil;
+import com.house.deed.pavilion.common.util.ContractValidationUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
-import com.house.deed.pavilion.module.contract.service.IContractService;
-import com.house.deed.pavilion.module.contract.service.impl.ContractServiceImpl;
 import com.house.deed.pavilion.module.contractLeaseTerms.entity.ContractLeaseTerms;
 import com.house.deed.pavilion.module.contractLeaseTerms.mapper.ContractLeaseTermsMapper;
 import com.house.deed.pavilion.module.contractLeaseTerms.service.IContractLeaseTermsService;
@@ -27,7 +24,7 @@ import org.springframework.stereotype.Service;
 public class ContractLeaseTermsServiceImpl extends ServiceImpl<ContractLeaseTermsMapper, ContractLeaseTerms> implements IContractLeaseTermsService {
 
     @Resource
-    private ContractLeaseUtil contractLeaseUtil;
+    private ContractValidationUtil contractValidationUtil;
 
     @Override
     public boolean saveOrUpdateLeaseTerms(ContractLeaseTerms terms) {
@@ -35,7 +32,7 @@ public class ContractLeaseTermsServiceImpl extends ServiceImpl<ContractLeaseTerm
         terms.setTenantId(tenantId);
 
         // 1. 校验合同存在性及类型（必须是租赁合同）
-        Contract contract = contractLeaseUtil.validateContract(terms.getContractId(), tenantId);
+        Contract contract = contractValidationUtil.validateContract(terms.getContractId(), tenantId);
         if (contract == null || !contract.getTenantId().equals(tenantId)) {
             throw new BusinessException(404, "合同不存在或无权访问");
         }

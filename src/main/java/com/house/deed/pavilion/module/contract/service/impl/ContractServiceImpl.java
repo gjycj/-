@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.ContractValidationUtil;
-import com.house.deed.pavilion.common.util.TempValidationUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.common.util.ValidateUtil;
 import com.house.deed.pavilion.module.agent.entity.Agent;
@@ -46,8 +45,6 @@ import java.util.List;
 public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> implements IContractService {
 
     @Resource
-    private TempValidationUtil tempValidationUtil;
-    @Resource
     private IHouseService houseService;
     @Resource
     private IHouseStatusLogService houseStatusLogService;
@@ -58,7 +55,16 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     @Resource
     private IAgentService agentService; // 经纪人服务
     @Resource
-    private ContractValidationUtil contractValidationUtil; // 注入附件服务
+    private ContractValidationUtil contractValidationUtil; // 依赖领域服务
+
+    @Override
+    public List<Contract> getByCustomerId(Long customerId, Long tenantId) {
+        return lambdaQuery()
+                .eq(Contract::getCustomerId, customerId)
+                .eq(Contract::getTenantId, tenantId)
+                .orderByDesc(Contract::getSignTime)
+                .list();
+    }
 
     @Override
     public List<Contract> getByHouseId(Long houseId) {
@@ -85,10 +91,9 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
             throw new BusinessException(404, "合同不存在或无权访问");
         }
 
-        // 2. 检查是否有关联数据（防止误删）
-        contractValidationUtil.validateNoDependenciesBeforeDelete(contractId, tenantId);
+        contractValidationUtil.validateNoDependenciesBeforeDelete(contractId);
         if ("RENT".equals(contract.getContractType())) {
-            ContractLeaseTerms terms = tempValidationUtil.validateContractLeaseTerms(contractId, tenantId);
+            ContractLeaseTerms terms = contractValidationUtil.validateContractLeaseTerms(contractId, tenantId);
             if (terms != null) {
                 throw new BusinessException(400, "租赁合同存在附加条款，无法删除");
             }

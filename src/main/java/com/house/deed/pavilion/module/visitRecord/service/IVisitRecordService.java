@@ -24,4 +24,7 @@ public interface IVisitRecordService extends IService<VisitRecord> {
      * @return 带看记录列表
      */
     List<VisitRecord> getByHouseId(Long houseId, Long tenantId);
+
+    List<VisitRecord> getByCustomerId(Long customerId, Long tenantId);
+
 }

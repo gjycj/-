@@ -3,9 +3,11 @@ package com.house.deed.pavilion.module.customer.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.service.ICustomerService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.house.deed.pavilion.module.customer.vo.CustomerFullFlowVO;
+import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -17,8 +19,15 @@ import java.math.BigDecimal;
 @RequestMapping("/module/customer")
 public class CustomerController {
 
-    @Autowired
+    @Resource
     private ICustomerService customerService;
+
+    @GetMapping("/{customerId}/full-flow")
+    public ResultDTO<CustomerFullFlowVO> getCustomerFullFlow(@PathVariable Long customerId) {
+        Long tenantId = TenantContext.getTenantId();
+        CustomerFullFlowVO result = customerService.getFullFlowByCustomerId(customerId, tenantId);
+        return ResultDTO.success(result);
+    }
 
     /**
      * 新增客户

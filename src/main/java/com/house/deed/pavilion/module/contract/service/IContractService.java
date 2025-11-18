@@ -15,6 +15,8 @@ import java.util.List;
  */
 public interface IContractService extends IService<Contract> {
 
+    List<Contract> getByCustomerId(Long customerId, Long tenantId);
+
     boolean createContract(Contract contract);
 
     /**

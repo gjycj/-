@@ -22,6 +22,15 @@ import java.util.List;
 public class VisitRecordServiceImpl extends ServiceImpl<VisitRecordMapper, VisitRecord> implements IVisitRecordService {
 
     @Override
+    public List<VisitRecord> getByCustomerId(Long customerId, Long tenantId) {
+        return lambdaQuery()
+                .eq(VisitRecord::getCustomerId, customerId)
+                .eq(VisitRecord::getTenantId, tenantId)
+                .orderByDesc(VisitRecord::getVisitTime)
+                .list();
+    }
+
+    @Override
     public List<VisitRecord> getByHouseId(Long houseId, Long tenantId) {
         ValidateUtil.notNull(houseId, "房源ID不能为空");
         ValidateUtil.notNull(tenantId, "租户ID不能为空");
