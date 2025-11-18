@@ -2,8 +2,10 @@ package com.house.deed.pavilion.module.contractAttachment.service.impl;
 
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.ContractValidationUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.IContractService;
@@ -32,8 +34,8 @@ import java.util.List;
 @Service
 public class ContractAttachmentServiceImpl extends ServiceImpl<ContractAttachmentMapper, ContractAttachment> implements IContractAttachmentService {
 
-    @Resource
-    private IContractService contractService;
+//    @Resource
+//    private ContractValidationUtil contractValidationUtil;
 
     @Value("${file.upload.path}")
     private String uploadPath;
@@ -43,8 +45,9 @@ public class ContractAttachmentServiceImpl extends ServiceImpl<ContractAttachmen
         Long tenantId = TenantContext.getTenantId();
 
         // 1. 校验合同存在性及租户归属
-        Contract contract = contractService.getById(contractId);
-        if (contract == null || !contract.getTenantId().equals(tenantId)) {
+        LambdaQueryWrapper<Contract> contract = Wrappers.<Contract>lambdaQuery().eq(Contract::getId, contractId);
+        Contract entity = contract.getEntity();
+        if (entity == null || !entity.getTenantId().equals(tenantId)) {
             throw new BusinessException(404, "合同不存在或无权访问");
         }
 

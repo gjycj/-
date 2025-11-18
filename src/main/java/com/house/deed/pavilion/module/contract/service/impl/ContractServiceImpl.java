@@ -4,6 +4,8 @@ import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.ContractValidationUtil;
+import com.house.deed.pavilion.common.util.TempValidationUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.common.util.ValidateUtil;
 import com.house.deed.pavilion.module.agent.entity.Agent;
@@ -11,10 +13,7 @@ import com.house.deed.pavilion.module.agent.service.IAgentService;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.mapper.ContractMapper;
 import com.house.deed.pavilion.module.contract.service.IContractService;
-import com.house.deed.pavilion.module.contractAttachment.entity.ContractAttachment;
-import com.house.deed.pavilion.module.contractAttachment.service.IContractAttachmentService;
 import com.house.deed.pavilion.module.contractLeaseTerms.entity.ContractLeaseTerms;
-import com.house.deed.pavilion.module.contractLeaseTerms.service.IContractLeaseTermsService;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.service.ICustomerService;
 import com.house.deed.pavilion.module.house.entity.House;
@@ -47,6 +46,8 @@ import java.util.List;
 public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> implements IContractService {
 
     @Resource
+    private TempValidationUtil tempValidationUtil;
+    @Resource
     private IHouseService houseService;
     @Resource
     private IHouseStatusLogService houseStatusLogService;
@@ -56,11 +57,8 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     private IVisitRecordService visitRecordService; // 带看记录服务
     @Resource
     private IAgentService agentService; // 经纪人服务
-
     @Resource
-    private IContractAttachmentService attachmentService; // 注入附件服务
-    @Resource
-    private IContractLeaseTermsService leaseTermsService; // 注入租赁条款服务
+    private ContractValidationUtil contractValidationUtil; // 注入附件服务
 
     @Override
     public List<Contract> getByHouseId(Long houseId) {
@@ -88,12 +86,9 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         }
 
         // 2. 检查是否有关联数据（防止误删）
-        List<ContractAttachment> attachments = attachmentService.getByContractId(contractId);
-        if (!attachments.isEmpty()) {
-            throw new BusinessException(400, "合同存在关联附件，无法删除");
-        }
+        contractValidationUtil.validateNoDependenciesBeforeDelete(contractId, tenantId);
         if ("RENT".equals(contract.getContractType())) {
-            ContractLeaseTerms terms = leaseTermsService.getByContractId(contractId);
+            ContractLeaseTerms terms = tempValidationUtil.validateContractLeaseTerms(contractId, tenantId);
             if (terms != null) {
                 throw new BusinessException(400, "租赁合同存在附加条款，无法删除");
             }
