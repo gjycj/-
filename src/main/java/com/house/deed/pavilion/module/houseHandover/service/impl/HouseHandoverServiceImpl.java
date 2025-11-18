@@ -12,11 +12,14 @@ import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
 import com.house.deed.pavilion.module.houseHandover.mapper.HouseHandoverMapper;
 import com.house.deed.pavilion.module.houseHandover.repository.HouseHandoverDTO;
 import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverService;
+import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
+import com.house.deed.pavilion.module.maintenanceOrder.service.IMaintenanceOrderService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -32,6 +35,21 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
 
     @Resource
     private IHouseService houseService;
+
+    @Resource
+    private IMaintenanceOrderService maintenanceOrderService;
+
+    @Override
+    public List<MaintenanceOrder> getRelatedMaintenanceOrders(Long handoverId) {
+        Long tenantId = TenantContext.getTenantId();
+        // 先校验交接记录是否属于当前租户
+        HouseHandover handover = getById(handoverId);
+        if (handover == null || !handover.getTenantId().equals(tenantId)) {
+            return Collections.emptyList(); // 或抛出无权限异常
+        }
+        // 查询关联的维修工单
+        return maintenanceOrderService.getByHouseHandoverId(handoverId, tenantId);
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)

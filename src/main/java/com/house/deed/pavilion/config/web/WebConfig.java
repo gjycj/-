@@ -1,6 +1,7 @@
 package com.house.deed.pavilion.config.web;
 
 import com.house.deed.pavilion.common.aspect.interceptor.TenantInterceptor;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -9,7 +10,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Autowired
+    @Resource
     private TenantInterceptor tenantInterceptor;
 
     @Override

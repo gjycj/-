@@ -2,6 +2,7 @@ package com.house.deed.pavilion.module.contract.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.house.deed.pavilion.module.contract.entity.Contract;
+import com.house.deed.pavilion.module.contract.vo.ContractDetailVO;
 
 import java.util.List;
 
@@ -14,6 +15,13 @@ import java.util.List;
  * @since 2025-11-07
  */
 public interface IContractService extends IService<Contract> {
+
+    /**
+     * 查询合同详情（含关联附件）
+     * @param contractId 合同ID
+     * @return 合同详情VO（含附件）
+     */
+    ContractDetailVO getDetailWithAttachments(Long contractId);
 
     List<Contract> getByCustomerId(Long customerId, Long tenantId);
 

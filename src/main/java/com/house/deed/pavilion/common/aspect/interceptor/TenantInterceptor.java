@@ -5,6 +5,7 @@ import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.tenant.entity.Tenant;
 import com.house.deed.pavilion.module.tenant.service.ITenantService;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +14,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
 public class TenantInterceptor implements HandlerInterceptor {
-    @Autowired
+    @Resource
     private ITenantService tenantService;
 
 

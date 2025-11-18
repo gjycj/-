@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
 import com.house.deed.pavilion.module.houseHandover.repository.HouseHandoverDTO;
+import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
 
 import java.util.List;
 
@@ -16,6 +17,14 @@ import java.util.List;
  * @since 2025-11-07
  */
 public interface IHouseHandoverService extends IService<HouseHandover> {
+
+    /**
+     * 查询交接记录关联的维修工单
+     * @param handoverId 交接记录ID
+     * @return 维修工单列表
+     */
+    List<MaintenanceOrder> getRelatedMaintenanceOrders(Long handoverId);
+
     /**
      * 创建房屋交接记录
      * @param dto 交接信息DTO

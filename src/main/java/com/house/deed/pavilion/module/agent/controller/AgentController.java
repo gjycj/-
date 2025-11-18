@@ -5,6 +5,7 @@ import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.module.agent.entity.Agent;
 import com.house.deed.pavilion.module.agent.service.IAgentService;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/module/agent")
 public class AgentController {
 
-    @Autowired
+    @Resource
     private IAgentService agentService;
 
     /**

@@ -4,6 +4,7 @@ import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.module.tenantConfig.entity.TenantConfig;
 import com.house.deed.pavilion.module.tenantConfig.service.ITenantConfigService;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/module/tenantConfig")
 public class TenantConfigController {
 
-    @Autowired
+    @Resource
     private ITenantConfigService tenantConfigService;
 
     // 测试成功响应

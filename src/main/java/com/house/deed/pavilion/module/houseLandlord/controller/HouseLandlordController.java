@@ -6,6 +6,7 @@ import com.house.deed.pavilion.module.houseLandlord.entity.HouseLandlord;
 import com.house.deed.pavilion.module.houseLandlord.service.IHouseLandlordService;
 import com.house.deed.pavilion.module.house.service.IHouseService;
 import com.house.deed.pavilion.module.landlord.service.ILandlordService;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,11 +19,11 @@ import java.util.List;
 @RequestMapping("/module/houseLandlord")
 public class HouseLandlordController {
 
-    @Autowired
+    @Resource
     private IHouseLandlordService houseLandlordService;
-    @Autowired
+    @Resource
     private IHouseService houseService;
-    @Autowired
+    @Resource
     private ILandlordService landlordService;
 
     /**

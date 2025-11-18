@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -36,6 +38,24 @@ public class ContractAttachmentServiceImpl extends ServiceImpl<ContractAttachmen
 
     @Value("${file.upload.path}")
     private String uploadPath;
+
+    // 实现类
+    // 实现新增的分组查询方法
+    @Override
+    public Map<String, List<ContractAttachment>> getGroupedByContractId(Long contractId, Long tenantId) {
+        // 1. 校验合同是否存在（可选，增强安全性）
+         contractValidationUtil.validateContract(contractId, tenantId);
+        // 2. 查询该合同下的所有附件
+        List<ContractAttachment> attachments = baseMapper.selectList(
+                new LambdaQueryWrapper<ContractAttachment>()
+                        .eq(ContractAttachment::getTenantId, tenantId)
+                        .eq(ContractAttachment::getContractId, contractId)
+        );
+
+        // 3. 按附件类型（attachmentType）分组
+        return attachments.stream()
+                .collect(Collectors.groupingBy(ContractAttachment::getAttachmentType));
+    }
 
     @Override
     public ContractAttachment uploadAttachment(Long contractId, MultipartFile file, String attachmentType, Long uploaderId) {

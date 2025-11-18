@@ -2,6 +2,7 @@ package com.house.deed.pavilion.module.maintenanceOrder.controller;
 
 import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
 import com.house.deed.pavilion.module.maintenanceOrder.service.IMaintenanceOrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +32,15 @@ public class MaintenanceOrderController {
 
     @Resource
     private IMaintenanceOrderService maintenanceOrderService;
+
+    @GetMapping("/handover/{handoverId}")
+    @Operation(summary = "查询交接记录关联的维修工单", description = "仅返回当前租户下的关联工单")
+    public ResultDTO<List<MaintenanceOrder>> getByHandoverId(
+            @Parameter(description = "房屋交接记录ID", required = true) @PathVariable Long handoverId) {
+        Long tenantId = TenantContext.getTenantId();
+        List<MaintenanceOrder> orders = maintenanceOrderService.getByHouseHandoverId(handoverId, tenantId);
+        return ResultDTO.success(orders);
+    }
 
     /**
      * 通过房源ID查询维修工单

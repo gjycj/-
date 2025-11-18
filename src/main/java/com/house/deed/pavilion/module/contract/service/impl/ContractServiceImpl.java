@@ -12,6 +12,10 @@ import com.house.deed.pavilion.module.agent.service.IAgentService;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.mapper.ContractMapper;
 import com.house.deed.pavilion.module.contract.service.IContractService;
+import com.house.deed.pavilion.module.contract.vo.ContractDetailVO;
+import com.house.deed.pavilion.module.contractAttachment.entity.ContractAttachment;
+import com.house.deed.pavilion.module.contractAttachment.mapper.ContractAttachmentMapper;
+import com.house.deed.pavilion.module.contractAttachment.service.IContractAttachmentService;
 import com.house.deed.pavilion.module.contractLeaseTerms.entity.ContractLeaseTerms;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.service.ICustomerService;
@@ -24,6 +28,7 @@ import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
 import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +61,28 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     private IAgentService agentService; // 经纪人服务
     @Resource
     private ContractValidationUtil contractValidationUtil; // 依赖领域服务
+
+    @Resource
+    private ContractAttachmentMapper contractAttachmentMapper; // 注入附件服务
+
+    @Override
+    public ContractDetailVO getDetailWithAttachments(Long contractId) {
+        Long tenantId = TenantContext.getTenantId();
+        // 1. 查询合同基本信息并校验权限
+        Contract contract = getById(contractId);
+        if (contract == null || !contract.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "合同不存在或无权访问");
+        }
+        // 2. 转换为VO并查询附件
+        ContractDetailVO vo = new ContractDetailVO();
+        BeanUtils.copyProperties(contract, vo);
+        List<ContractAttachment> attachments = contractAttachmentMapper.selectList(
+                new LambdaQueryWrapper<ContractAttachment>()
+                .eq(ContractAttachment::getContractId, contractId)
+        );
+        vo.setAttachments(attachments);
+        return vo;
+    }
 
     @Override
     public List<Contract> getByCustomerId(Long customerId, Long tenantId) {

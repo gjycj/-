@@ -5,6 +5,7 @@ import com.house.deed.pavilion.module.contractAttachment.entity.ContractAttachme
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -32,5 +33,7 @@ public interface IContractAttachmentService extends IService<ContractAttachment>
      * @return 附件列表
      */
     List<ContractAttachment> getByContractId(Long contractId);
+
+    Map<String, List<ContractAttachment>> getGroupedByContractId(Long contractId, Long tenantId);
 
 }

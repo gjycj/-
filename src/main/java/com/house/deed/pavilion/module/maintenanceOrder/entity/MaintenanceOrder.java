@@ -32,6 +32,16 @@ public class MaintenanceOrder implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
+     * 关联的房屋交接记录ID（退租维修时必填，关联house_handover表，同租户）
+     */
+    @Schema(
+            description = "关联的房屋交接记录ID（仅退租维修场景填写，对应退租交接记录）",
+            example = "50001"
+    )
+    @TableField("house_handover_id")
+    private Long houseHandoverId;
+
+    /**
      * 工单ID
      */
     @Schema(

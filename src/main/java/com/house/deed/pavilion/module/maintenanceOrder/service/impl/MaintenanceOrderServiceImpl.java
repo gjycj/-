@@ -10,6 +10,9 @@ import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.service.IHouseService;
+import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
+import com.house.deed.pavilion.module.houseHandover.mapper.HouseHandoverMapper;
+import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverService;
 import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
 import com.house.deed.pavilion.module.maintenanceOrder.mapper.MaintenanceOrderMapper;
 import com.house.deed.pavilion.module.maintenanceOrder.service.IMaintenanceOrderService;
@@ -44,6 +47,18 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
     @Resource
     private IContractService contractService;
 
+    @Resource
+    private HouseHandoverMapper houseHandoverMapper;
+
+    @Override
+    public List<MaintenanceOrder> getByHouseHandoverId(Long handoverId, Long tenantId) {
+        return lambdaQuery()
+                .eq(MaintenanceOrder::getTenantId, tenantId)
+                .eq(MaintenanceOrder::getHouseHandoverId, handoverId)
+                .orderByDesc(MaintenanceOrder::getCreateTime)
+                .list();
+    }
+
     @Override
     public List<MaintenanceOrder> getByHouseId(Long houseId) {
         ValidateUtil.notNull(houseId, "房源ID不能为空");
@@ -68,6 +83,22 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
 
         // 1. 基础参数校验
         validateOrderParams(order);
+
+        // 新增：校验关联的房屋交接记录（若存在）
+        if (order.getHouseHandoverId() != null) {
+            HouseHandover handover = houseHandoverMapper.selectById(order.getHouseHandoverId());
+            // 校验交接记录存在性、租户归属、交接类型为退租
+            if (handover == null || !handover.getTenantId().equals(tenantId)) {
+                throw new BusinessException(400, "关联的房屋交接记录不存在或无权访问");
+            }
+            if (!"CHECK_OUT".equals(handover.getHandoverType())) {
+                throw new BusinessException(400, "仅退租交接记录可关联维修工单");
+            }
+            // 确保维修工单的房源ID与交接记录一致
+            if (!handover.getHouseId().equals(order.getHouseId())) {
+                throw new BusinessException(400, "维修工单房源与关联的交接记录房源不一致");
+            }
+        }
 
         // 2. 校验房源是否属于当前租户
         House house = houseService.getById(order.getHouseId());

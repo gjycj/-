@@ -2,15 +2,20 @@ package com.house.deed.pavilion.module.houseHandover.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.house.deed.pavilion.common.dto.ResultDTO;
+import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
 import com.house.deed.pavilion.module.houseHandover.repository.HouseHandoverDTO;
 import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverService;
+import com.house.deed.pavilion.module.houseHandover.vo.HouseHandoverDetailVO;
+import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +35,22 @@ public class HouseHandoverController {
 
     @Resource
     private IHouseHandoverService houseHandoverService;
+
+    @GetMapping("/detail/{id}")
+    @Operation(summary = "查询交接记录详情（含关联维修工单）")
+    public ResultDTO<HouseHandoverDetailVO> getHandoverDetail(@PathVariable Long id) {
+        HouseHandover handover = houseHandoverService.getById(id);
+        if (handover == null || !handover.getTenantId().equals(TenantContext.getTenantId())) {
+            throw new BusinessException(404, "交接记录不存在或无权访问");
+        }
+        // 查询关联的维修工单
+        List<MaintenanceOrder> orders = houseHandoverService.getRelatedMaintenanceOrders(id);
+        // 封装VO返回（需新建HouseHandoverDetailVO，包含handover和orders字段）
+        HouseHandoverDetailVO vo = new HouseHandoverDetailVO();
+        BeanUtils.copyProperties(handover, vo);
+        vo.setMaintenanceOrders(orders);
+        return ResultDTO.success(vo);
+    }
 
     @PostMapping("/add")
     @Operation(summary = "新增交接记录", description = "创建入住（CHECK_IN）或退租（CHECK_OUT）交接记录")

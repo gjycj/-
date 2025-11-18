@@ -4,10 +4,12 @@ import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.IContractService;
+import com.house.deed.pavilion.module.contract.vo.ContractDetailVO;
 import com.house.deed.pavilion.module.customerFollowUp.entity.CustomerFollowUp;
 import com.house.deed.pavilion.module.customerFollowUp.service.ICustomerFollowUpService;
 import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
 import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,6 +33,13 @@ public class ContractController {
 
     @Resource
     private IVisitRecordService visitRecordService;
+
+    @GetMapping("/detail/{id}")
+    @Operation(summary = "查询合同详情（含关联附件）")
+    public ResultDTO<ContractDetailVO> getDetailWithAttachments(@PathVariable Long id) {
+        ContractDetailVO detailVO = contractService.getDetailWithAttachments(id);
+        return ResultDTO.success(detailVO);
+    }
 
     /**
      * 通过房源ID查询关联合同

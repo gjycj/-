@@ -43,4 +43,13 @@ public interface IMaintenanceOrderService extends IService<MaintenanceOrder> {
      * @return 维修工单列表
      */
     List<MaintenanceOrder> getByHouseId(Long houseId);
+
+    /**
+     * 通过房屋交接记录ID查询关联的维修工单
+     * @param handoverId 交接记录ID
+     * @param tenantId 租户ID（权限隔离）
+     * @return 维修工单列表
+     */
+    List<MaintenanceOrder> getByHouseHandoverId(Long handoverId, Long tenantId);
+
 }
