@@ -81,6 +81,7 @@ public class VisitRecordController {
         if (record.getAgentId() == null) {
             throw new BusinessException(400, "经纪人ID不能为空");
         }
+
         if (record.getVisitTime() == null) {
             throw new BusinessException(400, "带看时间不能为空");
         }
@@ -105,6 +106,11 @@ public class VisitRecordController {
         Customer customer = customerService.getById(record.getCustomerId());
         if (customer == null || !customer.getTenantId().equals(currentTenantId)) {
             throw new BusinessException(404, "客户不存在或无权访问");
+        }
+
+        // 新增：校验客户状态是否为活跃
+        if (!"ACTIVE".equals(customer.getStatus())) {
+            throw new BusinessException(400, "客户状态非活跃（当前状态：" + customer.getStatus() + "），无法进行带看");
         }
 
         // 5. 关联经纪人合法性校验（存在、在职且属于当前租户）

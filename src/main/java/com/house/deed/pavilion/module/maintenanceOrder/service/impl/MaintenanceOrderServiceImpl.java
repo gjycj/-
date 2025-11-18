@@ -17,6 +17,8 @@ import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
 import com.house.deed.pavilion.module.maintenanceOrder.mapper.MaintenanceOrderMapper;
 import com.house.deed.pavilion.module.maintenanceOrder.service.IMaintenanceOrderService;
 import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +51,10 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
 
     @Resource
     private HouseHandoverMapper houseHandoverMapper;
+
+    @Autowired
+    @Lazy
+    private IHouseHandoverService houseHandoverService;
 
     @Override
     public List<MaintenanceOrder> getByHouseHandoverId(Long handoverId, Long tenantId) {
@@ -196,9 +202,18 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
         if (existOrder == null) {
             throw new BusinessException(404, "工单不存在或无权访问");
         }
-
+        String oldStatus = existOrder.getStatus();
+        String newStatus = updateInfo.getStatus();
         // 2. 校验状态流转合法性（示例：已提交→已分配→已完成）
-        validateStatusTransition(existOrder.getStatus(), updateInfo.getStatus());
+        validateStatusTransition(oldStatus, newStatus);
+
+        // 3. 处理完成状态的特殊逻辑：同步至房屋交接记录
+        if ("COMPLETED".equals(newStatus) && !"COMPLETED".equals(oldStatus)) {
+            // 自动填充完成时间
+            updateInfo.setCompleteTime(LocalDateTime.now());
+            // 同步至房屋交接记录（重点新增逻辑）
+            syncToHouseHandover(existOrder);
+        }
 
         // 3. 仅更新允许修改的字段
         MaintenanceOrder updateWrapper = new MaintenanceOrder();
@@ -211,8 +226,36 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
         updateWrapper.setCostBearer(updateInfo.getCostBearer());
         updateWrapper.setRemark(updateInfo.getRemark());
         updateWrapper.setUpdateTime(LocalDateTime.now());
-
+        updateWrapper.setCompleteTime(updateInfo.getCompleteTime()); // 补充完成时间更新
         return this.updateById(updateWrapper);
+    }
+
+
+    /**
+     * 同步维修结果至房屋交接记录（针对退租交接场景）
+     */
+    private void syncToHouseHandover(MaintenanceOrder completedOrder) {
+        Long houseId = completedOrder.getHouseId();
+        Long contractId = completedOrder.getContractId();
+        Long tenantId = completedOrder.getTenantId();
+
+        // 仅针对退租交接（CHECK_OUT）且关联同一合同的记录进行同步
+        HouseHandover latestCheckOut = houseHandoverService.getOne(new LambdaQueryWrapper<HouseHandover>()
+                .eq(HouseHandover::getTenantId, tenantId)
+                .eq(HouseHandover::getHouseId, houseId)
+                .eq(HouseHandover::getContractId, contractId)
+                .eq(HouseHandover::getHandoverType, "CHECK_OUT")
+                .orderByDesc(HouseHandover::getHandoverTime)
+                .last("LIMIT 1"));
+
+        if (latestCheckOut != null) {
+            // 更新交接记录中的维修相关字段
+            latestCheckOut.setMaintenanceRemark(completedOrder.getRemark()); // 维修结果备注
+            latestCheckOut.setMaintenanceCost(completedOrder.getCostAmount()); // 维修费用
+            latestCheckOut.setMaintenanceBearer(completedOrder.getCostBearer()); // 费用承担方
+            latestCheckOut.setLastMaintenanceId(completedOrder.getId()); // 关联工单ID
+            houseHandoverService.updateById(latestCheckOut);
+        }
     }
 
     /**

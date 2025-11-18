@@ -7,13 +7,17 @@ import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.contract.vo.ContractDetailVO;
 import com.house.deed.pavilion.module.customerFollowUp.entity.CustomerFollowUp;
 import com.house.deed.pavilion.module.customerFollowUp.service.ICustomerFollowUpService;
+import com.house.deed.pavilion.module.house.service.IHouseService;
+import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
+import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverService;
 import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
 import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.validator.internal.util.stereotypes.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +34,10 @@ public class ContractController {
 
     @Resource
     private ICustomerFollowUpService customerFollowUpService;
+
+    @Autowired
+    @Lazy
+    private IHouseHandoverService houseHandoverService;
 
     @Resource
     private IVisitRecordService visitRecordService;
@@ -97,6 +105,24 @@ public class ContractController {
             throw new BusinessException(404, "合同不存在或无权访问");
         }
         return ResultDTO.success(contract);
+    }
+
+    // ContractController.java
+    @GetMapping("/{contractId}/latest-checkout")
+    @Operation(summary = "查询合同最新退租记录", description = "获取指定租赁合同的最新退租交接信息")
+    public ResultDTO<HouseHandover> getContractLatestCheckout(@PathVariable Long contractId) {
+        Contract contract = contractService.getById(contractId);
+        if (contract == null) {
+            throw new BusinessException(404, "合同不存在");
+        }
+        // 仅允许查询租赁合同的退租记录
+        if (!"RENT".equals(contract.getContractType())) {
+            throw new BusinessException(400, "仅租赁合同支持查询退租记录");
+        }
+        // 调用方法查询
+        HouseHandover latestCheckout = houseHandoverService
+                .getLatestCheckOutByHouseAndContract(contract.getHouseId(), contractId);
+        return ResultDTO.success(latestCheckout);
     }
 
     /**

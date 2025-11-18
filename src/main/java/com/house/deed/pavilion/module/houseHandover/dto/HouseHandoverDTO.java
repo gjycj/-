@@ -1,4 +1,4 @@
-package com.house.deed.pavilion.module.houseHandover.repository;
+package com.house.deed.pavilion.module.houseHandover.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

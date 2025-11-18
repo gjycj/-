@@ -22,6 +22,8 @@ import com.house.deed.pavilion.module.customer.service.ICustomerService;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.repository.HouseStatus;
 import com.house.deed.pavilion.module.house.service.IHouseService;
+import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
+import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverService;
 import com.house.deed.pavilion.module.houseStatusLog.entity.HouseStatusLog;
 import com.house.deed.pavilion.module.houseStatusLog.service.IHouseStatusLogService;
 import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
@@ -29,6 +31,8 @@ import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +68,10 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
 
     @Resource
     private ContractAttachmentMapper contractAttachmentMapper; // 注入附件服务
+
+    @Autowired
+    @Lazy
+    private IHouseHandoverService houseHandoverService;
 
     @Override
     public ContractDetailVO getDetailWithAttachments(Long contractId) {
@@ -225,26 +233,42 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     /**
      * 合同状态流转（包含房源状态自动更新、带看记录关联）
      */
+    // ContractServiceImpl.java
     @Transactional(rollbackFor = Exception.class)
     public boolean updateContractStatus(Long contractId, String targetStatus) {
-        // 1. 校验合同存在性
+        // 1. 校验合同存在性（已有逻辑）
         Contract contract = getById(contractId);
         if (contract == null) {
             throw new BusinessException(404, "合同不存在");
         }
 
-        // 2. 校验状态流转合法性
+        // 2. 校验状态流转合法性（已有逻辑）
         validateStatusTransition(contract.getStatus(), targetStatus);
 
-        // 3. 签约状态特殊处理（更新房源状态+linkVisitRecords）
+        // 3. 签约状态特殊处理（已有逻辑）
         if ("SIGNED".equals(targetStatus) && !"SIGNED".equals(contract.getStatus())) {
-            // 更新房源状态（买卖→已售，租赁→已租）
             updateHouseStatusAfterSign(contract);
-            // linkVisitRecords（若创建时未关联成功）
             linkVisitRecords(contract, contract.getTenantId());
         }
 
-        // 4. 更新合同状态
+        // 4. 新增：租赁合同终止/完成前校验退租记录
+        if (("TERMINATED".equals(targetStatus) || "COMPLETED".equals(targetStatus))
+                && "RENT".equals(contract.getContractType())) {
+
+            // 调用getLatestCheckOutByHouseAndContract查询最新退租记录
+            HouseHandover latestCheckOut = houseHandoverService
+                    .getLatestCheckOutByHouseAndContract(contract.getHouseId(), contractId);
+
+            if (latestCheckOut == null) {
+                throw new BusinessException(400, "未查询到退租交接记录，无法终止/完成合同");
+            }
+            // 可选：若退租记录有状态字段，需校验是否已完成（如状态为"CONFIRMED"）
+             if (!"CONFIRMED".equals(latestCheckOut.getHandoverType())) {
+                 throw new BusinessException(400, "退租交接未确认，无法终止/完成合同");
+             }
+        }
+
+        // 5. 更新合同状态（已有逻辑）
         contract.setStatus(targetStatus);
         contract.setUpdateTime(LocalDateTime.now());
         return updateById(contract);

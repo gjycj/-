@@ -25,6 +25,18 @@ public class HouseHandover implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    @TableField("maintenance_remark")
+    private String maintenanceRemark; // 维修结果备注
+
+    @TableField("maintenance_cost")
+    private BigDecimal maintenanceCost; // 维修费用
+
+    @TableField("maintenance_bearer")
+    private String maintenanceBearer; // 费用承担方
+
+    @TableField("last_maintenance_id")
+    private Long lastMaintenanceId; // 关联的维修工单ID
+
     /**
      * 交接ID
      */

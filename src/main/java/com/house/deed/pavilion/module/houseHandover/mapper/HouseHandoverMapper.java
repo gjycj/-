@@ -1,5 +1,6 @@
 package com.house.deed.pavilion.module.houseHandover.mapper;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
 

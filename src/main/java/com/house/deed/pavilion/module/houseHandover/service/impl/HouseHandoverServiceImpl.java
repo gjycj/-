@@ -7,14 +7,17 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.BeanConvertUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
+import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.house.service.IHouseService;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
 import com.house.deed.pavilion.module.houseHandover.mapper.HouseHandoverMapper;
-import com.house.deed.pavilion.module.houseHandover.repository.HouseHandoverDTO;
+import com.house.deed.pavilion.module.houseHandover.dto.HouseHandoverDTO;
 import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverService;
 import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
 import com.house.deed.pavilion.module.maintenanceOrder.service.IMaintenanceOrderService;
 import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +41,10 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
 
     @Resource
     private IMaintenanceOrderService maintenanceOrderService;
+
+    @Autowired
+    @Lazy
+    private IContractService contractService;
 
     @Override
     public List<MaintenanceOrder> getRelatedMaintenanceOrders(Long handoverId) {
@@ -68,7 +75,43 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
 
         // 保存交接记录
         this.save(handover);
+        // 新增：若为退租交接，自动更新合同状态为COMPLETED
+        if ("CHECK_OUT".equals(dto.getHandoverType())) {
+            // 调用getLatestCheckOut确认当前记录是最新的退租记录
+            HouseHandover latest = this.getLatestCheckOut(
+                    dto.getHouseId(), dto.getContractId(), tenantId
+            );
+            if (latest != null && latest.getId().equals(handover.getId())) {
+                // 调用合同服务更新状态
+                contractService.updateContractStatus(dto.getContractId(), "COMPLETED");
+            }
+        }
         return handover.getId();
+    }
+
+    @Override
+    public HouseHandover getLatestCheckOutByHouseAndContract(Long houseId, Long contractId) {
+        Long tenantId = TenantContext.getTenantId();
+        return this.getOne(new LambdaQueryWrapper<HouseHandover>()
+                .eq(HouseHandover::getTenantId, tenantId)
+                .eq(HouseHandover::getHouseId, houseId)
+                .eq(HouseHandover::getContractId, contractId)
+                .eq(HouseHandover::getHandoverType, "CHECK_OUT")
+                .orderByDesc(HouseHandover::getHandoverTime)
+                .last("LIMIT 1"));
+    }
+
+    @Override
+    public HouseHandover getLatestCheckOut(Long houseId, Long contractId, Long tenantId) {
+        LambdaQueryWrapper<HouseHandover> queryWrapper = new LambdaQueryWrapper<HouseHandover>()
+                .eq(HouseHandover::getTenantId, tenantId)
+                .eq(HouseHandover::getHouseId, houseId)
+                .eq(HouseHandover::getContractId, contractId)
+                .eq(HouseHandover::getHandoverType, "CHECK_OUT")
+                .orderByDesc(HouseHandover::getHandoverTime)
+                .last("LIMIT 1");
+        // 第二个参数 false：多记录时取第一条，不抛异常
+        return this.getOne(queryWrapper, false);
     }
 
     @Override
@@ -97,7 +140,7 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
     @Transactional(rollbackFor = Exception.class)
     public boolean updateHandover(Long id, HouseHandoverDTO dto) {
         // 校验记录存在性及租户归属
-        if (!existsByIdAndTenant(id)) {
+        if (existsByIdAndTenant(id)) {
             throw new BusinessException(404, "交接记录不存在或无权访问");
         }
 
@@ -117,7 +160,7 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteHandover(Long id) {
-        if (!existsByIdAndTenant(id)) {
+        if (existsByIdAndTenant(id)) {
             throw new BusinessException(404, "交接记录不存在或无权访问");
         }
         return baseMapper.deleteById(id) > 0;
@@ -141,6 +184,6 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
         int count = Math.toIntExact(baseMapper.selectCount(new LambdaQueryWrapper<HouseHandover>()
                 .eq(HouseHandover::getId, id)
                 .eq(HouseHandover::getTenantId, tenantId)));
-        return count > 0;
+        return !(count > 0);
     }
 }

@@ -5,7 +5,7 @@ import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
-import com.house.deed.pavilion.module.houseHandover.repository.HouseHandoverDTO;
+import com.house.deed.pavilion.module.houseHandover.dto.HouseHandoverDTO;
 import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverService;
 import com.house.deed.pavilion.module.houseHandover.vo.HouseHandoverDetailVO;
 import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;

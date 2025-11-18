@@ -3,7 +3,7 @@ package com.house.deed.pavilion.module.houseHandover.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
-import com.house.deed.pavilion.module.houseHandover.repository.HouseHandoverDTO;
+import com.house.deed.pavilion.module.houseHandover.dto.HouseHandoverDTO;
 import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
 
 import java.util.List;
@@ -54,4 +54,12 @@ public interface IHouseHandoverService extends IService<HouseHandover> {
 
     // 新增：校验交接记录是否存在且属于当前租户
     boolean existsByIdAndTenant(Long id);
+
+    // 新增：查询指定房源+合同的最新退租交接记录
+    HouseHandover getLatestCheckOutByHouseAndContract(Long houseId, Long contractId);
+
+    /**
+     * 获取指定房源+合同的最新退租交接记录
+     */
+    HouseHandover getLatestCheckOut(Long houseId, Long contractId, Long tenantId);
 }
