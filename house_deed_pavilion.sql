@@ -11,7 +11,7 @@
  Target Server Version : 80044 (8.0.44)
  File Encoding         : 65001
 
- Date: 17/11/2025 03:32:58
+ Date: 19/11/2025 08:35:28
 */
 
 SET NAMES utf8mb4;
@@ -202,7 +202,9 @@ CREATE TABLE `contract`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_tenant_contract_no`(`tenant_id` ASC, `contract_no` ASC) USING BTREE COMMENT '租户内合同编号唯一',
   INDEX `idx_house`(`house_id` ASC) USING BTREE,
-  INDEX `idx_tenant_sign_time`(`tenant_id` ASC, `sign_time` ASC) USING BTREE COMMENT '租户内按签约时间查询'
+  INDEX `idx_tenant_sign_time`(`tenant_id` ASC, `sign_time` ASC) USING BTREE COMMENT '租户内按签约时间查询',
+  INDEX `idx_customer`(`customer_id` ASC) USING BTREE COMMENT '按客户ID查询合同',
+  INDEX `idx_tenant_customer`(`tenant_id` ASC, `customer_id` ASC) USING BTREE COMMENT '租户内按客户查询合同'
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '交易合同表（租户核心业务数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -282,7 +284,8 @@ CREATE TABLE `customer`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_tenant_phone`(`tenant_id` ASC, `phone` ASC) USING BTREE COMMENT '租户内按电话查询客户',
   INDEX `idx_intended_region`(`intended_region_id` ASC) USING BTREE,
-  INDEX `idx_customer_type_potential`(`customer_type` ASC, `potential_level` ASC) USING BTREE COMMENT '租户内筛选重点客户'
+  INDEX `idx_customer_type_potential`(`customer_type` ASC, `potential_level` ASC) USING BTREE COMMENT '租户内筛选重点客户',
+  INDEX `idx_tenant_creator`(`tenant_id` ASC, `create_agent_id` ASC) USING BTREE COMMENT '租户内按创建人筛选客户'
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户信息表（租户级数据隔离）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -341,7 +344,9 @@ CREATE TABLE `customer_follow_up`  (
   INDEX `idx_customer_agent`(`customer_id` ASC, `agent_id` ASC) USING BTREE,
   INDEX `idx_tenant_follow_time`(`tenant_id` ASC, `follow_time` ASC) USING BTREE COMMENT '租户内按时间查询跟进记录',
   INDEX `idx_follow_contract`(`contract_id` ASC) USING BTREE COMMENT '通过合同ID查询带看记录',
-  INDEX `idx_customer_house_time`(`customer_id` ASC, `house_id` ASC, `follow_time` DESC) USING BTREE COMMENT '通过客户+房源查询最近带看记录'
+  INDEX `idx_customer_house_time`(`customer_id` ASC, `house_id` ASC, `follow_time` DESC) USING BTREE COMMENT '通过客户+房源查询最近带看记录',
+  INDEX `idx_contract`(`contract_id` ASC) USING BTREE,
+  INDEX `idx_tenant_customer`(`tenant_id` ASC, `customer_id` ASC) USING BTREE COMMENT '租户+客户ID查询跟进记录'
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户跟进记录表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -489,7 +494,7 @@ CREATE TABLE `house`  (
 -- ----------------------------
 INSERT INTO `house` VALUES (1, 2, 1, '1单元101室', '三居室', 120.50, 100.20, 10, 30, '南北通透', '精装', '商品房', NULL, NULL, NULL, NULL, 780.00, 'SALE', 'ON_SALE', '中间楼层，采光好，满五唯一', 1, '2025-11-13 04:00:28', '2025-11-13 05:52:23');
 INSERT INTO `house` VALUES (2, 1, 1, '2单元202室', '两居室', 90.30, 75.10, 20, 30, '南向', '简装', '商品房', NULL, NULL, NULL, NULL, 550.00, 'SALE', 'ON_SALE', '视野开阔，临近小区花园', 2, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-INSERT INTO `house` VALUES (5, 1, 1, '1单元301', '3室2厅1卫', 120.50, 105.30, 15, 34, '南北通透', '精装', '商品房', '京房权证海字第123456号', 70, 'NONE', '招商银行，抵押金额50万元', 580.00, '\"SALE\"', 'ON_SALE', '临近地铁10号线，小区绿化率30%，周边有三甲医院', 3001, '2025-11-14 09:13:49', '2025-11-15 12:51:46');
+INSERT INTO `house` VALUES (5, 1, 1, '1单元301', '3室2厅1卫', 120.50, 105.30, 15, 34, '南北通透', '精装', '商品房', '京房权证海字第123456号', 70, 'NONE', '招商银行，抵押金额50万元', 580.00, 'SALE', 'ON_SALE', '临近地铁10号线，小区绿化率30%，周边有三甲医院', 3001, '2025-11-14 09:13:49', '2025-11-18 08:00:38');
 
 -- ----------------------------
 -- Table structure for house_backup
@@ -539,6 +544,7 @@ CREATE TABLE `house_handover`  (
   `house_id` bigint NOT NULL COMMENT '房源ID（关联house表，同租户）',
   `handover_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '交接类型（CHECK_IN-入住，CHECK_OUT-退租）',
   `handover_time` datetime NOT NULL COMMENT '交接时间',
+  `settlement_status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'UNSETTLED' COMMENT '费用结算状态（UNSETTLED-未结算，SETTLED-已结算）',
   `appliances_list` json NULL COMMENT '家具家电清单（如{\"冰箱\":\"海尔\",\"空调\":2台}）',
   `water_meter` decimal(10, 2) NULL DEFAULT NULL COMMENT '水表底数（吨）',
   `electricity_meter` decimal(10, 2) NULL DEFAULT NULL COMMENT '电表底数（度）',
@@ -547,7 +553,12 @@ CREATE TABLE `house_handover`  (
   `handover_person` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '交接人（房东或其代理人）',
   `receiver` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '接收人（租户）',
   `sign_image_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '交接确认签字图片URL',
+  `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'DRAFT' COMMENT '交接记录状态（DRAFT-草稿，CONFIRMED-已确认）',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `maintenance_remark` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '维修结果备注（同步自维修工单）',
+  `maintenance_cost` decimal(10, 2) NULL DEFAULT NULL COMMENT '维修费用（元）',
+  `maintenance_bearer` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '维修费用承担方（LANDLORD/TENANT/SHARED）',
+  `last_maintenance_id` bigint NULL DEFAULT NULL COMMENT '关联的最后一次维修工单ID',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_contract`(`contract_id` ASC) USING BTREE,
   INDEX `idx_tenant_handover_time`(`tenant_id` ASC, `handover_time` ASC) USING BTREE COMMENT '租户内按交接时间查询'
@@ -556,7 +567,7 @@ CREATE TABLE `house_handover`  (
 -- ----------------------------
 -- Records of house_handover
 -- ----------------------------
-INSERT INTO `house_handover` VALUES (1, 1, 2, 2, 'CHECK_IN', '2023-10-20 09:30:00', '{\"冰箱\": \"海尔\", \"空调\": 2, \"洗衣机\": \"美的\"}', 120.50, 350.20, 50.80, NULL, '周八', '赵六', NULL, '2025-11-13 04:00:28');
+INSERT INTO `house_handover` VALUES (1, 1, 2, 2, 'CHECK_IN', '2023-10-20 09:30:00', 'UNSETTLED', '{\"冰箱\": \"海尔\", \"空调\": 2, \"洗衣机\": \"美的\"}', 120.50, 350.20, 50.80, NULL, '周八', '赵六', NULL, 'DRAFT', '2025-11-13 04:00:28', NULL, NULL, NULL, NULL);
 
 -- ----------------------------
 -- Table structure for house_image
@@ -691,7 +702,8 @@ CREATE TABLE `house_tag`  (
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_house_tag`(`house_id` ASC, `tag_id` ASC) USING BTREE COMMENT '房源-标签关联唯一',
-  INDEX `idx_tenant_tag`(`tenant_id` ASC, `tag_id` ASC) USING BTREE COMMENT '租户内按标签查询房源'
+  INDEX `idx_tenant_tag`(`tenant_id` ASC, `tag_id` ASC) USING BTREE COMMENT '租户内按标签查询房源',
+  INDEX `idx_tenant_house`(`tenant_id` ASC, `house_id` ASC) USING BTREE COMMENT '租户内按房源查询关联标签'
 ) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源与标签关联表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -816,6 +828,8 @@ CREATE TABLE `maintenance_order`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '工单ID',
   `tenant_id` bigint NOT NULL COMMENT '租户ID（归属租户）',
   `house_id` bigint NOT NULL COMMENT '房源ID（关联house表，同租户）',
+  `contract_id` bigint NULL DEFAULT NULL COMMENT '关联合同ID（仅限租赁场景，关联contract表，同租户）',
+  `house_handover_id` bigint NULL DEFAULT NULL COMMENT '关联的房屋交接记录ID（退租维修时非空，同租户）',
   `order_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '工单编号（租户内唯一）',
   `reporter_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '报修人类型（TENANT-租户等）',
   `reporter_id` bigint NOT NULL COMMENT '报修人ID（关联对应表，同租户）',
@@ -835,13 +849,17 @@ CREATE TABLE `maintenance_order`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_tenant_order_no`(`tenant_id` ASC, `order_no` ASC) USING BTREE COMMENT '租户内工单编号唯一',
   INDEX `idx_house_status`(`house_id` ASC, `status` ASC) USING BTREE,
-  INDEX `idx_tenant_urgency`(`tenant_id` ASC, `urgency_level` ASC) USING BTREE COMMENT '租户内按紧急程度查询'
+  INDEX `idx_tenant_urgency`(`tenant_id` ASC, `urgency_level` ASC) USING BTREE COMMENT '租户内按紧急程度查询',
+  INDEX `idx_contract`(`contract_id` ASC) USING BTREE,
+  INDEX `idx_house`(`house_id` ASC) USING BTREE COMMENT '按房源ID查询维修订单',
+  INDEX `idx_tenant_house`(`tenant_id` ASC, `house_id` ASC) USING BTREE COMMENT '租户内按房源查询维修订单',
+  INDEX `idx_tenant_handover`(`tenant_id` ASC, `house_handover_id` ASC) USING BTREE COMMENT '租户+交接记录ID查询维修工单'
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源维修工单表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of maintenance_order
 -- ----------------------------
-INSERT INTO `maintenance_order` VALUES (1, 1, 2, 'TENANT1_MAINT20251115001', 'TENANT', 30001, '13800138000', 'APPLIANCE', '客厅空调运行时不制冷，外机有异响', 2, 1, 'SUBMITTED', '2025-11-15 05:54:39', NULL, 150.50, 'LANDLORD', '更换空调压缩机，故障排除', '2025-11-15 13:59:12', '2025-11-15 13:59:12');
+INSERT INTO `maintenance_order` VALUES (1, 1, 2, NULL, NULL, 'TENANT1_MAINT20251115001', 'TENANT', 30001, '13800138000', 'APPLIANCE', '客厅空调运行时不制冷，外机有异响', 2, 1, 'SUBMITTED', '2025-11-15 05:54:39', NULL, 150.50, 'LANDLORD', '更换空调压缩机，故障排除', '2025-11-15 13:59:12', '2025-11-15 13:59:12');
 
 -- ----------------------------
 -- Table structure for operation_log
@@ -1069,7 +1087,9 @@ CREATE TABLE `visit_record`  (
   INDEX `idx_customer_house`(`customer_id` ASC, `house_id` ASC) USING BTREE,
   INDEX `idx_tenant_visit_time`(`tenant_id` ASC, `visit_time` ASC) USING BTREE COMMENT '租户内按时间查询带看记录',
   INDEX `idx_visit_contract`(`contract_id` ASC) USING BTREE COMMENT '通过合同ID查询带看记录',
-  INDEX `idx_customer_house_visit_time`(`customer_id` ASC, `house_id` ASC, `visit_time` DESC) USING BTREE COMMENT '通过客户+房源查询最近带看记录'
+  INDEX `idx_customer_house_visit_time`(`customer_id` ASC, `house_id` ASC, `visit_time` DESC) USING BTREE COMMENT '通过客户+房源查询最近带看记录',
+  INDEX `idx_contract`(`contract_id` ASC) USING BTREE,
+  INDEX `idx_tenant_customer`(`tenant_id` ASC, `customer_id` ASC) USING BTREE COMMENT '租户+客户ID查询带看记录'
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '带看记录表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
