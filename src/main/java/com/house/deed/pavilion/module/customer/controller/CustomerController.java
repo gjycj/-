@@ -1,8 +1,11 @@
 package com.house.deed.pavilion.module.customer.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.AgentContext;
+import com.house.deed.pavilion.common.util.RoleUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.service.ICustomerService;
@@ -25,6 +28,21 @@ public class CustomerController {
     @GetMapping("/{customerId}/full-flow")
     public ResultDTO<CustomerFullFlowVO> getCustomerFullFlow(@PathVariable Long customerId) {
         Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+
+        // 1. 校验客户存在性及租户归属（基于customer.tenant_id）
+        Customer customer = customerService.getById(customerId);
+        if (customer == null || !customer.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "客户不存在或无权访问");
+        }
+
+        // 2. 校验操作人权限（基于customer.create_agent_id，管理员/店长豁免）
+        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()
+                && !customer.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权访问非本人创建的客户全流程信息");
+        }
+
+        // 3. 查询全流程信息
         CustomerFullFlowVO result = customerService.getFullFlowByCustomerId(customerId, tenantId);
         return ResultDTO.success(result);
     }
@@ -34,10 +52,17 @@ public class CustomerController {
      */
     @PostMapping
     public ResultDTO<Boolean> addCustomer(@RequestBody Customer customer) {
-        // 校验必填字段
+        // 校验必填字段（name/phone对应customer表非空约束）
         if (customer.getName() == null || customer.getPhone() == null) {
             throw new BusinessException(400, "客户姓名和电话不能为空");
         }
+
+        // 自动填充租户ID和创建者ID（关联customer.tenant_id和create_agent_id）
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+        customer.setTenantId(tenantId);
+        customer.setCreateAgentId(currentAgentId); // 绑定创建者，为后续权限判断奠基
+
         boolean success = customerService.save(customer);
         return ResultDTO.success(success);
     }
@@ -51,6 +76,22 @@ public class CustomerController {
             @RequestParam String targetStatus,
             @RequestParam Long operatorId) {
 
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+
+        // 1. 校验客户存在性及租户归属（customer.tenant_id匹配）
+        Customer customer = customerService.getById(id);
+        if (customer == null || !customer.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "客户不存在或无权访问");
+        }
+
+        // 2. 校验操作人权限（仅创建者/管理员/店长可操作）
+        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()
+                && !customer.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权修改非本人创建的客户状态");
+        }
+
+        // 3. 执行状态更新（更新customer.status字段）
         boolean success = customerService.updateStatus(id, targetStatus, operatorId);
         return ResultDTO.success(success);
     }
@@ -60,22 +101,42 @@ public class CustomerController {
      */
     @GetMapping("/{id}")
     public ResultDTO<Customer> getCustomerById(@PathVariable Long id) {
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+
+        // 1. 查询客户并校验租户归属
         Customer customer = customerService.getById(id);
-        if (customer == null) {
-            throw new BusinessException(404, "客户不存在");
+        if (customer == null || !customer.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "客户不存在或无权访问");
         }
+
+        // 2. 校验当前经纪人是否为创建者（管理员/店长豁免）
+        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()
+                && !customer.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权访问非本人创建的客户");
+        }
+
         return ResultDTO.success(customer);
     }
 
-    /**
-     * 分页查询客户
-     */
+    // 分页查询客户列表（仅返回当前经纪人创建的客户）
     @GetMapping("/page")
     public ResultDTO<Page<Customer>> getCustomerPage(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
+
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
         Page<Customer> page = new Page<>(pageNum, pageSize);
-        Page<Customer> resultPage = customerService.page(page);
+
+        Page<Customer> resultPage = customerService.page(page,
+                new LambdaQueryWrapper<Customer>()
+                        .eq(Customer::getTenantId, tenantId)
+                        // 非管理员只能查询自己创建的客户
+                        .eq(!RoleUtil.isAdmin() && !RoleUtil.isStoreManager(),
+                                Customer::getCreateAgentId, currentAgentId)
+                        .orderByDesc(Customer::getCreateTime)
+        );
         return ResultDTO.success(resultPage);
     }
 
@@ -87,9 +148,26 @@ public class CustomerController {
         if (!id.equals(customer.getId())) {
             throw new BusinessException(400, "ID不匹配");
         }
-        if (!customerService.existsById(id)) {
-            throw new BusinessException(404, "客户不存在");
+
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+
+        // 1. 校验客户存在性及租户归属
+        Customer existing = customerService.getById(id);
+        if (existing == null || !existing.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "客户不存在或无权访问");
         }
+
+        // 2. 校验当前经纪人是否为创建者（管理员/店长豁免）
+        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()
+                && !existing.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权修改非本人创建的客户");
+        }
+
+        // 3. 禁止修改租户ID和创建者ID
+        customer.setTenantId(tenantId);
+        customer.setCreateAgentId(existing.getCreateAgentId());
+
         boolean success = customerService.updateById(customer);
         return ResultDTO.success(success);
     }
@@ -99,9 +177,21 @@ public class CustomerController {
      */
     @DeleteMapping("/{id}")
     public ResultDTO<Boolean> deleteCustomer(@PathVariable Long id) {
-        if (!customerService.existsById(id)) {
-            throw new BusinessException(404, "客户不存在");
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+
+        // 1. 校验客户存在性及租户归属
+        Customer customer = customerService.getById(id);
+        if (customer == null || !customer.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "客户不存在或无权访问");
         }
+
+        // 2. 校验当前经纪人是否为创建者（管理员/店长豁免）
+        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()
+                && !customer.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权删除非本人创建的客户");
+        }
+
         boolean success = customerService.removeById(id);
         return ResultDTO.success(success);
     }
@@ -119,19 +209,28 @@ public class CustomerController {
             @RequestParam(required = false) String customerType,
             @RequestParam(required = false) String status) {
 
-        // 校验状态参数合法性
+        // 参数合法性校验（匹配customer表的customer_type和status字段枚举值）
         if (status != null && !("ACTIVE".equals(status) || "DEALED".equals(status) || "DORMANT".equals(status))) {
             throw new BusinessException(400, "状态只能是ACTIVE/DEALED/DORMANT");
         }
-
-        // 校验客户类型参数合法性
         if (customerType != null && !("ORDINARY".equals(customerType) || "VIP".equals(customerType) || "INVEST".equals(customerType))) {
             throw new BusinessException(400, "客户类型只能是ORDINARY/VIP/INVEST");
         }
 
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
         Page<Customer> page = new Page<>(pageNum, pageSize);
+
+        // 带条件查询，同时过滤租户和创建者（非管理员仅查自己的客户）
         Page<Customer> resultPage = customerService.getCustomerPageByCondition(
-                page, intendedRegionId, priceMin, priceMax, customerType, status);
+                page,
+                intendedRegionId,
+                priceMin,
+                priceMax,
+                customerType,
+                status,
+                currentAgentId
+        );
         return ResultDTO.success(resultPage);
     }
 }

@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.BeanConvertUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
+import com.house.deed.pavilion.common.util.ValidateUtil;
 import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.house.service.IHouseService;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
@@ -15,6 +16,7 @@ import com.house.deed.pavilion.module.houseHandover.dto.HouseHandoverDTO;
 import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverService;
 import com.house.deed.pavilion.module.maintenanceOrder.entity.MaintenanceOrder;
 import com.house.deed.pavilion.module.maintenanceOrder.service.IMaintenanceOrderService;
+import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -68,6 +70,11 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
             throw new BusinessException(400, "房源不存在或无权访问");
         }
 
+        // 2. 草稿状态无需校验交接人、接收人等必填字段
+        if ("CONFIRMED".equals(dto.getStatus())) {
+            validateRequiredFields(dto); // 抽取必填字段校验逻辑
+        }
+
         // DTO转实体
         HouseHandover handover = BeanConvertUtil.convert(dto, HouseHandover.class);
         handover.setTenantId(tenantId);
@@ -87,6 +94,31 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
             }
         }
         return handover.getId();
+    }
+
+    /**
+     * 校验已确认状态下的必填字段
+     */
+    private void validateRequiredFields(HouseHandoverDTO dto) {
+        // 交接人、接收人校验（已存在）
+        ValidateUtil.notNull(dto.getHandoverPerson(), "交接人不能为空");
+        ValidateUtil.notNull(dto.getReceiver(), "接收人不能为空");
+
+        // 核心关联字段校验（必须关联房源和合同）
+        ValidateUtil.notNull(dto.getHouseId(), "房源ID不能为空");
+        ValidateUtil.notNull(dto.getContractId(), "合同ID不能为空");
+
+        // 交接时间校验（确认时必须明确交接时间）
+        ValidateUtil.notNull(dto.getHandoverTime(), "交接时间不能为空");
+
+        // 交接类型校验（退租交接必须明确类型）
+        ValidateUtil.notNull(dto.getHandoverType(), "交接类型不能为空");
+        if (!"CHECK_OUT".equals(dto.getHandoverType())) {
+            throw new BusinessException(400, "退租交接记录类型必须为CHECK_OUT");
+        }
+
+        // 关键交接内容校验（如物品状态、费用结算等，根据业务最小必要原则补充）
+        ValidateUtil.notNull(dto.getSettlementStatus(), "费用结算状态不能为空（如已结算/未结算）");
     }
 
     @Override

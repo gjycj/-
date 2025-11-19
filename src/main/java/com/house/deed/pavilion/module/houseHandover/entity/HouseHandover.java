@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,6 +26,10 @@ import lombok.Setter;
 public class HouseHandover implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    @TableField("settlement_status")
+    @Schema(description = "费用结算状态（UNSETTLED-未结算，SETTLED-已结算）")
+    private String settlementStatus;
 
     @TableField("maintenance_remark")
     private String maintenanceRemark; // 维修结果备注
@@ -114,6 +120,9 @@ public class HouseHandover implements Serializable {
      */
     @TableField("receiver")
     private String receiver;
+
+    @TableField("status")
+    private String status; // DRAFT/CONFIRMED
 
     /**
      * 交接确认签字图片URL

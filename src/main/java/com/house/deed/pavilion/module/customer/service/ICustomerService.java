@@ -38,7 +38,8 @@ public interface ICustomerService extends IService<Customer> {
             BigDecimal priceMin,
             BigDecimal priceMax,
             String customerType,
-            String status
+            String status,
+            Long currentAgentId
     );
 
     /**

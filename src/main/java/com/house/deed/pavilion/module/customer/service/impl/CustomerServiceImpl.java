@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.AgentContext;
+import com.house.deed.pavilion.common.util.RoleUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.mapper.ContractMapper;
@@ -93,15 +95,26 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
             BigDecimal priceMin,
             BigDecimal priceMax,
             String customerType,
-            String status) {
+            String status,
+            Long currentAgentId) {
+
 
         Long tenantId = TenantContext.getTenantId();
+        // 获取当前登录经纪人ID
+        // 判断当前角色是否为管理员或店长（需确保RoleUtil工具类已实现）
+        boolean isPrivileged = RoleUtil.isAdmin() || RoleUtil.isStoreManager();
+
         LambdaQueryWrapper<Customer> queryWrapper = Wrappers.lambdaQuery();
 
-        // 多租户隔离（必加条件）
+        // 1. 多租户隔离（必加条件）
         queryWrapper.eq(Customer::getTenantId, tenantId);
 
-        // 条件筛选（仅当参数不为空时添加）
+        // 2. 权限过滤：非管理员/店长仅能查看自己创建的客户
+        if (!isPrivileged) {
+            queryWrapper.eq(Customer::getCreateAgentId, currentAgentId);
+        }
+
+        // 3. 业务条件筛选（仅当参数不为空时添加）
         queryWrapper.eq(intendedRegionId != null, Customer::getIntendedRegionId, intendedRegionId)
                 .ge(priceMin != null, Customer::getIntendedPriceMin, priceMin)
                 .le(priceMax != null, Customer::getIntendedPriceMax, priceMax)

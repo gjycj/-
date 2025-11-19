@@ -22,6 +22,7 @@ import com.house.deed.pavilion.module.customer.service.ICustomerService;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.repository.HouseStatus;
 import com.house.deed.pavilion.module.house.service.IHouseService;
+import com.house.deed.pavilion.module.houseHandover.dto.HouseHandoverDTO;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
 import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverService;
 import com.house.deed.pavilion.module.houseStatusLog.entity.HouseStatusLog;
@@ -263,15 +264,34 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
                 throw new BusinessException(400, "未查询到退租交接记录，无法终止/完成合同");
             }
             // 可选：若退租记录有状态字段，需校验是否已完成（如状态为"CONFIRMED"）
-             if (!"CONFIRMED".equals(latestCheckOut.getHandoverType())) {
+             if (!"CONFIRMED".equals(latestCheckOut.getStatus())) {
                  throw new BusinessException(400, "退租交接未确认，无法终止/完成合同");
              }
+        }
+        // 2. 新增：合同终止且为租赁合同，生成退租交接草稿
+        if ("TERMINATED".equals(targetStatus) && "RENT".equals(contract.getContractType())) {
+            generateCheckoutHandoverDraft(contract);
         }
 
         // 5. 更新合同状态（已有逻辑）
         contract.setStatus(targetStatus);
         contract.setUpdateTime(LocalDateTime.now());
         return updateById(contract);
+    }
+
+    /**
+     * 生成退租交接记录草稿
+     */
+    private void generateCheckoutHandoverDraft(Contract contract) {
+        HouseHandoverDTO draft = new HouseHandoverDTO();
+        draft.setContractId(contract.getId());
+        draft.setHouseId(contract.getHouseId());
+        draft.setHandoverType("CHECK_OUT"); // 退租类型
+        draft.setStatus("DRAFT"); // 标记为草稿
+        draft.setHandoverTime(LocalDateTime.now()); // 默认为当前时间，可后续修改
+
+        // 调用交接服务创建草稿（需调整createHandover支持草稿逻辑）
+        houseHandoverService.createHandover(draft);
     }
 
     /**
