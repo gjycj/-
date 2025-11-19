@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.BeanConvertUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.common.util.ValidateUtil;
@@ -13,6 +14,8 @@ import com.house.deed.pavilion.module.agent.entity.Agent;
 import com.house.deed.pavilion.module.agent.service.IAgentService;
 import com.house.deed.pavilion.module.building.entity.Building;
 import com.house.deed.pavilion.module.building.service.IBuildingService;
+import com.house.deed.pavilion.module.contract.entity.Contract;
+import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.house.dto.HouseAddDTO;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.mapper.HouseMapper;
@@ -41,7 +44,9 @@ import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -50,6 +55,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -101,6 +107,71 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
 
     @Resource
     private IHouseBackupService houseBackupService;  // 房源删除备份服务
+
+    // 注入合同服务，用于查询合同关联的房源ID
+    @Autowired
+    @Lazy
+    private IContractService contractService;
+
+    /**
+     * 通过合同ID查询关联房源（仅当前经纪人创建的）
+     * 逻辑：先查合同表获取house_id，再查房源并校验权限
+     */
+    @Override
+    public List<House> getByContractId(Long contractId, Long tenantId, Long agentId) {
+        ValidateUtil.notNull(contractId, "合同ID不能为空");
+        ValidateUtil.notNull(tenantId, "租户ID不能为空");
+        ValidateUtil.notNull(agentId, "经纪人ID不能为空");
+
+        // 1. 查询合同信息（校验合同归属当前租户）
+        Contract contract = contractService.getByIdWithTenant(contractId);
+        if (contract == null) {
+            throw new BusinessException(404, "合同不存在或无权访问");
+        }
+
+        // 2. 通过合同关联的house_id查询房源
+        House house = this.getById(contract.getHouseId());
+        if (house == null) {
+            return Collections.emptyList(); // 合同关联的房源不存在，返回空列表
+        }
+
+        // 3. 校验房源归属（租户+创建人）
+        if (!house.getTenantId().equals(tenantId) || !house.getCreateAgentId().equals(agentId)) {
+            throw new BusinessException(403, "无权访问该房源");
+        }
+
+        return Collections.singletonList(house);
+    }
+
+    /**
+     * 通过客户ID分页查询关联房源（仅当前经纪人创建的）
+     * 逻辑：先查客户关联的所有合同，提取house_id列表，再查房源并校验权限
+     */
+    @Override
+    public Page<House> getByCustomerId(Page<House> page, Long customerId, Long tenantId, Long agentId) {
+        ValidateUtil.notNull(customerId, "客户ID不能为空");
+        ValidateUtil.notNull(tenantId, "租户ID不能为空");
+        ValidateUtil.notNull(agentId, "经纪人ID不能为空");
+
+        // 1. 查询客户关联的所有合同（当前租户内）
+        List<Contract> contracts = contractService.getByCustomerId(customerId, tenantId);
+        if (contracts.isEmpty()) {
+            return new Page<>(); // 无关联合同，返回空分页
+        }
+
+        // 2. 提取合同关联的房源ID列表
+        List<Long> houseIds = contracts.stream()
+                .map(Contract::getHouseId)
+                .distinct() // 去重，避免同一房源被多次查询
+                .collect(Collectors.toList());
+
+        // 3. 分页查询房源（租户隔离+经纪人创建权限+房源ID在列表中）
+        return lambdaQuery()
+                .in(House::getId, houseIds)
+                .eq(House::getTenantId, tenantId)
+                .eq(House::getCreateAgentId, agentId) // 仅自己创建的房源
+                .page(page);
+    }
 
 
     /**
@@ -471,8 +542,14 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
     public boolean deleteAndBackup(Long id, String operator) {
         // 1. 查询原房源信息
         House house = getById(id);
+        Long currentAgentId = AgentContext.getAgentId(); // 假设从上下文获取当前经纪人ID
         if (house == null) {
             return false;
+        }
+
+        // 2. 新增：校验当前经纪人是否为房源创建人
+        if (!house.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权删除他人创建的房源");
         }
 
         // 2. 复制房源信息到备份表

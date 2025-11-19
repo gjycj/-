@@ -150,23 +150,25 @@ public class CustomerController {
         }
 
         Long tenantId = TenantContext.getTenantId();
-        Long currentAgentId = AgentContext.getAgentId();
+        Long currentAgentId = AgentContext.getAgentId(); // 当前经纪人ID
 
         // 1. 校验客户存在性及租户归属
-        Customer existing = customerService.getById(id);
-        if (existing == null || !existing.getTenantId().equals(tenantId)) {
-            throw new BusinessException(404, "客户不存在或无权访问");
+        Customer existingCustomer = customerService.getById(id);
+        if (existingCustomer == null) {
+            throw new BusinessException(404, "客户不存在");
+        }
+        if (!existingCustomer.getTenantId().equals(tenantId)) {
+            throw new BusinessException(403, "无权访问该客户");
         }
 
-        // 2. 校验当前经纪人是否为创建者（管理员/店长豁免）
-        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()
-                && !existing.getCreateAgentId().equals(currentAgentId)) {
-            throw new BusinessException(403, "无权修改非本人创建的客户");
+        // 2. 新增：校验当前经纪人是否为客户创建人
+        if (!existingCustomer.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权修改他人创建的客户");
         }
 
-        // 3. 禁止修改租户ID和创建者ID
+        // 3. 禁止修改租户ID和创建人ID（防篡改）
         customer.setTenantId(tenantId);
-        customer.setCreateAgentId(existing.getCreateAgentId());
+        customer.setCreateAgentId(currentAgentId);
 
         boolean success = customerService.updateById(customer);
         return ResultDTO.success(success);
@@ -182,16 +184,19 @@ public class CustomerController {
 
         // 1. 校验客户存在性及租户归属
         Customer customer = customerService.getById(id);
-        if (customer == null || !customer.getTenantId().equals(tenantId)) {
-            throw new BusinessException(404, "客户不存在或无权访问");
+        if (customer == null) {
+            throw new BusinessException(404, "客户不存在");
+        }
+        if (!customer.getTenantId().equals(tenantId)) {
+            throw new BusinessException(403, "无权访问该客户");
         }
 
-        // 2. 校验当前经纪人是否为创建者（管理员/店长豁免）
-        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()
-                && !customer.getCreateAgentId().equals(currentAgentId)) {
-            throw new BusinessException(403, "无权删除非本人创建的客户");
+        // 2. 新增：校验当前经纪人是否为客户创建人
+        if (!customer.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权删除他人创建的客户");
         }
 
+        // 3. 执行删除（如果有业务关联校验，可在此处添加）
         boolean success = customerService.removeById(id);
         return ResultDTO.success(success);
     }

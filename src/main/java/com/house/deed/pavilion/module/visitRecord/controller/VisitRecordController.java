@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.agent.entity.Agent;
 import com.house.deed.pavilion.module.agent.service.IAgentService;
@@ -51,13 +52,38 @@ public class VisitRecordController {
     @Resource
     private IAgentService agentService;
 
+    // 新增：删除带看记录接口
+    @DeleteMapping("/{id}")
+    public ResultDTO<Boolean> deleteVisitRecord(@PathVariable Long id) {
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+
+        VisitRecord record = visitRecordService.getById(id);
+        if (record == null || !record.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "带看记录不存在或无权访问");
+        }
+        // 校验是否为自己创建的记录
+        if (!record.getAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权删除他人创建的带看记录");
+        }
+
+        boolean success = visitRecordService.removeById(id);
+        return ResultDTO.success(success);
+    }
+
     /**
      * 通过房源ID查询带看记录
      */
     @GetMapping("/by-house")
     public ResultDTO<List<VisitRecord>> getByHouseId(@RequestParam Long houseId) {
         Long tenantId = TenantContext.getTenantId();
-        List<VisitRecord> visitRecords = visitRecordService.getByHouseId(houseId, tenantId);
+        Long currentAgentId = AgentContext.getAgentId();
+        // 新增：查询条件添加agent_id = 当前经纪人ID
+        List<VisitRecord> visitRecords = visitRecordService.lambdaQuery()
+                .eq(VisitRecord::getHouseId, houseId)
+                .eq(VisitRecord::getTenantId, tenantId)
+                .eq(VisitRecord::getAgentId, currentAgentId) // 权限过滤
+                .list();
         return ResultDTO.success(visitRecords);
     }
 
@@ -86,11 +112,17 @@ public class VisitRecordController {
             throw new BusinessException(400, "带看时间不能为空");
         }
 
+
+
         // 2. 租户隔离校验（确保操作当前租户数据）
         Long currentTenantId = TenantContext.getTenantId();
         if (record.getTenantId() == null || !record.getTenantId().equals(currentTenantId)) {
             throw new BusinessException(403, "租户信息不匹配，禁止操作");
         }
+
+        Long currentAgentId = AgentContext.getAgentId(); // 获取当前经纪人ID
+        // 新增：强制带看记录的agent_id为当前经纪人（覆盖前端传入值）
+        record.setAgentId(currentAgentId);
 
         // 3. 关联房源合法性校验（存在且属于当前租户）
         House house = houseService.getById(record.getHouseId());

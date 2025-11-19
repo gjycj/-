@@ -6,6 +6,8 @@ import com.house.deed.pavilion.module.house.dto.HouseAddDTO;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.common.exception.BusinessException;
 
+import java.util.List;
+
 /**
  * <p>
  * 房源信息表（租户核心数据）服务接口
@@ -29,6 +31,12 @@ public interface IHouseService extends IService<House> {
      * @return 分页查询结果，包含房源列表和分页信息
      */
     Page<House> getHousePage(Page<House> page, String houseNo, String status);
+
+    // 新增：通过合同ID查询房源（仅自己创建的）
+    List<House> getByContractId(Long contractId, Long tenantId, Long agentId);
+
+    // 新增：通过客户ID查询房源（仅自己创建的）
+    Page<House> getByCustomerId(Page<House> page, Long customerId, Long tenantId, Long agentId);
 
     /**
      * 检查房源是否存在（基于ID）

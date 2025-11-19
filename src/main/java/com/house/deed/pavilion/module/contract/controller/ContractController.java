@@ -2,6 +2,8 @@ package com.house.deed.pavilion.module.contract.controller;
 
 import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.AgentContext;
+import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.contract.vo.ContractDetailVO;
@@ -100,9 +102,16 @@ public class ContractController {
      */
     @GetMapping("/{id}")
     public ResultDTO<Contract> getContractById(@PathVariable Long id) {
-        Contract contract = contractService.getByIdWithTenant(id); // 替换原getById
-        if (contract == null) {
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+
+        Contract contract = contractService.getById(id);
+        if (contract == null || !contract.getTenantId().equals(tenantId)) {
             throw new BusinessException(404, "合同不存在或无权访问");
+        }
+        // 校验是否为签约经纪人
+        if (!contract.getAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权访问非本人签约的合同");
         }
         return ResultDTO.success(contract);
     }

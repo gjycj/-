@@ -74,6 +74,9 @@ public class CustomerFollowUpController {
     // 新增跟进记录（仅客户创建者可操作）
     @PostMapping("/addFollowUp")
     public ResultDTO<Boolean> addFollowUp(@RequestBody CustomerFollowUp followUp) {
+        Long currentAgentId = AgentContext.getAgentId();
+        // 强制跟进记录的agent_id为当前经纪人
+        followUp.setAgentId(currentAgentId);
         // 1. 基础非空校验
         if (followUp.getCustomerId() == null) {
             throw new BusinessException(400, "客户ID不能为空");
@@ -104,7 +107,6 @@ public class CustomerFollowUpController {
         }
 
         // 4. 校验当前经纪人是否为客户创建者（核心权限控制）
-        Long currentAgentId = AgentContext.getAgentId();
         // 仅管理员/店长可操作非本人创建的客户，普通经纪人只能操作自己创建的客户
         if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()) {
             if (!currentAgentId.equals(customer.getCreateAgentId())) {
@@ -205,7 +207,12 @@ public class CustomerFollowUpController {
 
         // 3. 执行查询
         Page<CustomerFollowUp> page = new Page<>(pageNum, pageSize);
-        Page<CustomerFollowUp> resultPage = customerFollowUpService.getByCustomerId(page, customerId, tenantId);
+        // 新增：过滤agent_id为当前经纪人的记录
+        Page<CustomerFollowUp> resultPage = customerFollowUpService.lambdaQuery()
+                .eq(CustomerFollowUp::getCustomerId, customerId)
+                .eq(CustomerFollowUp::getTenantId, tenantId)
+                .eq(CustomerFollowUp::getAgentId, currentAgentId)
+                .page(page);
         return ResultDTO.success(resultPage);
     }
 

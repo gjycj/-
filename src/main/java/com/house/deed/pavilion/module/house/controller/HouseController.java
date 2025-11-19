@@ -3,6 +3,7 @@ package com.house.deed.pavilion.module.house.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.IContractService;
@@ -52,6 +53,31 @@ public class HouseController {
     private IContractService contractService;
     @Resource
     private IMaintenanceOrderService maintenanceOrderService;
+
+    // 通过合同ID查询房源（仅当前经纪人创建的）
+    @GetMapping("/by-contract/{contractId}")
+    public ResultDTO<List<House>> getByContractId(@PathVariable Long contractId) {
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId(); // 从上下文获取当前经纪人ID
+
+        List<House> houses = houseService.getByContractId(contractId, tenantId, currentAgentId);
+        return ResultDTO.success(houses);
+    }
+
+    // 通过客户ID分页查询房源（仅当前经纪人创建的）
+    @GetMapping("/by-customer/{customerId}")
+    public ResultDTO<Page<House>> getByCustomerId(
+            @PathVariable Long customerId,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+        Page<House> page = new Page<>(pageNum, pageSize);
+
+        Page<House> resultPage = houseService.getByCustomerId(page, customerId, tenantId, currentAgentId);
+        return ResultDTO.success(resultPage);
+    }
 
     /**
      * 查询房源全生命周期记录（带看+合同+维修）
