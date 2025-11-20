@@ -1,5 +1,6 @@
 package com.house.deed.pavilion.module.customer.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -11,6 +12,7 @@ import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.mapper.ContractMapper;
 import com.house.deed.pavilion.module.contract.service.IContractService;
+import com.house.deed.pavilion.module.customer.dto.CustomerQueryDTO;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.mapper.CustomerMapper;
 import com.house.deed.pavilion.module.customer.service.ICustomerService;
@@ -58,7 +60,7 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
 
         // 2. 查询关联数据
         // 2.1 查询带看记录（需依赖IVisitRecordService的getByCustomerId方法）
-        List<VisitRecord> visitRecords = visitRecordService.getByCustomerId(customerId, tenantId);
+        List<VisitRecord> visitRecords = visitRecordService.getByCustomerId(customerId);
 
         // 2.2 查询合同记录（需依赖IContractService的getByCustomerId方法）
         List<Contract> contracts = contractMapper.selectList(
@@ -81,6 +83,22 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
         vo.setFollowUps(followUps);
 
         return vo;
+    }
+
+    // 在客户Service的分页查询方法中添加过滤
+    @Override
+    public Page<Customer> getCustomerPage(Page<Customer> page, CustomerQueryDTO query) {
+        Long currentAgentId = AgentContext.getAgentId();
+        Long tenantId = TenantContext.getTenantId();
+
+        return baseMapper.selectPage(page,
+                new LambdaQueryWrapper<Customer>()
+                        .eq(Customer::getTenantId, tenantId)
+                        .eq(Customer::getCreateAgentId, currentAgentId) // 仅查询自己的客户
+                        .like(StrUtil.isNotBlank(query.getName()), Customer::getName, query.getName())
+                        .eq(StrUtil.isNotBlank(query.getStatus()), Customer::getStatus, query.getStatus())
+                        .eq(StrUtil.isNotBlank(query.getType()), Customer::getCustomerType, query.getType())
+        );
     }
 
     @Override

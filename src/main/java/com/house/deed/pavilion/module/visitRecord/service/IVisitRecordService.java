@@ -15,7 +15,7 @@ import java.util.List;
  */
 public interface IVisitRecordService extends IService<VisitRecord> {
     // 新增：通过合同ID查询带看记录
-    List<VisitRecord> getByContractId(Long contractId, Long tenantId);
+    List<VisitRecord> getByContractId(Long contractId,Long tenantId);
 
     /**
      * 通过房源ID查询带看记录（带租户隔离）
@@ -25,6 +25,6 @@ public interface IVisitRecordService extends IService<VisitRecord> {
      */
     List<VisitRecord> getByHouseId(Long houseId, Long tenantId);
 
-    List<VisitRecord> getByCustomerId(Long customerId, Long tenantId);
+    List<VisitRecord> getByCustomerId(Long customerId);
 
 }

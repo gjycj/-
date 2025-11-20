@@ -2,7 +2,7 @@ package com.house.deed.pavilion.module.customer.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.house.deed.pavilion.module.contract.entity.Contract;
+import com.house.deed.pavilion.module.customer.dto.CustomerQueryDTO;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.vo.CustomerFullFlowVO;
 
@@ -50,4 +50,6 @@ public interface ICustomerService extends IService<Customer> {
      * @return 是否更新成功
      */
     boolean updateStatus(Long customerId, String targetStatus, Long operatorId);
+
+    Page<Customer> getCustomerPage(Page<Customer> page, CustomerQueryDTO query);
 }

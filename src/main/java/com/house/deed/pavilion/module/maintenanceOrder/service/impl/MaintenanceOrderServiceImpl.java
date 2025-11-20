@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.common.util.ValidateUtil;
 import com.house.deed.pavilion.module.contract.entity.Contract;
@@ -70,7 +71,13 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
         ValidateUtil.notNull(houseId, "房源ID不能为空");
         Long tenantId = TenantContext.getTenantId();
         ValidateUtil.notNull(tenantId, "租户上下文获取失败");
-
+        Long currentAgentId = AgentContext.getAgentId();
+        // 1. 校验房源是否为当前经纪人创建
+        House house = houseService.getById(houseId);
+        if (house == null || !house.getTenantId().equals(tenantId)
+                || !house.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权访问该房源的维修工单");
+        }
         return baseMapper.selectList(new LambdaQueryWrapper<MaintenanceOrder>()
                 .eq(MaintenanceOrder::getHouseId, houseId)
                 .eq(MaintenanceOrder::getTenantId, tenantId));

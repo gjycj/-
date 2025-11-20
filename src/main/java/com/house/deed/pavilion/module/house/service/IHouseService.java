@@ -3,6 +3,7 @@ package com.house.deed.pavilion.module.house.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.house.deed.pavilion.module.house.dto.HouseAddDTO;
+import com.house.deed.pavilion.module.house.dto.HouseQueryDTO;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.common.exception.BusinessException;
 
@@ -18,19 +19,6 @@ import java.util.List;
  * @since 2025-11-07
  */
 public interface IHouseService extends IService<House> {
-
-    /**
-     * 分页查询房源列表（支持按房号和状态筛选）
-     * <p>
-     * 自动过滤当前租户数据，房号支持模糊匹配，状态为精确匹配
-     * </p>
-     *
-     * @param page     分页参数（包含页码、每页条数）
-     * @param houseNo  房号筛选条件（可为空，空则不筛选）
-     * @param status   房源状态筛选条件（可为空，空则不筛选）
-     * @return 分页查询结果，包含房源列表和分页信息
-     */
-    Page<House> getHousePage(Page<House> page, String houseNo, String status);
 
     // 新增：通过合同ID查询房源（仅自己创建的）
     List<House> getByContractId(Long contractId, Long tenantId, Long agentId);
@@ -84,4 +72,6 @@ public interface IHouseService extends IService<House> {
      * @throws BusinessException 当房源不存在、备份失败或删除失败时抛出
      */
     boolean deleteAndBackup(Long id, String operator);
+
+    Page<House> getHousePage(Page<House> page, HouseQueryDTO queryDTO);
 }

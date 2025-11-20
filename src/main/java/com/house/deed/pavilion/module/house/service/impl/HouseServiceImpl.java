@@ -2,6 +2,7 @@ package com.house.deed.pavilion.module.house.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -17,6 +18,7 @@ import com.house.deed.pavilion.module.building.service.IBuildingService;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.house.dto.HouseAddDTO;
+import com.house.deed.pavilion.module.house.dto.HouseQueryDTO;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.mapper.HouseMapper;
 import com.house.deed.pavilion.module.house.repository.HouseStatus;
@@ -499,20 +501,20 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
     }
 
 
-    /**
-     * 分页查询房源列表（支持按房号模糊查询和状态筛选）
-     * 自动通过多租户插件添加租户ID条件，确保数据隔离
-     *
-     * @param page    分页参数（页码、每页条数）
-     * @param houseNo 房号（模糊查询，可为null）
-     * @param status  房源状态（精确匹配，可为null）
-     * @return 分页查询结果（包含房源列表及分页信息）
-     */
+
     @Override
-    @Cacheable(value = "housePageCache", key = "'tenant:'+#tenantId+':page:'+#pageNum+':size:'+#pageSize+':houseNo:'+#houseNo+':status:'+#status")
-    public Page<House> getHousePage(Page<House> page, String houseNo, String status) {
+    public Page<House> getHousePage(Page<House> page, HouseQueryDTO queryDTO) {
+        Long currentAgentId = AgentContext.getAgentId(); // 假设通过上下文获取当前经纪人ID
         Long tenantId = TenantContext.getTenantId();
-        return baseMapper.selectHousePage(page, houseNo, status, tenantId);
+
+        return baseMapper.selectPage(page,
+                new LambdaQueryWrapper<House>()
+                        .eq(House::getTenantId, tenantId) // 保留租户隔离
+                        .eq(House::getCreateAgentId, currentAgentId) // 新增：仅查询自己创建的房源
+                        .like(StrUtil.isNotBlank(queryDTO.getHouseNo()), House::getHouseNo, queryDTO.getHouseNo())
+                        .eq(queryDTO.getStatus() != null, House::getStatus, queryDTO.getStatus())
+                        .eq(StrUtil.isNotBlank(queryDTO.getTransactionType()), House::getTransactionType, queryDTO.getTransactionType())
+        );
     }
 
 
@@ -543,14 +545,19 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
         // 1. 查询原房源信息
         House house = getById(id);
         Long currentAgentId = AgentContext.getAgentId(); // 假设从上下文获取当前经纪人ID
-        if (house == null) {
-            return false;
+        Long tenantId = TenantContext.getTenantId();
+
+        // 1. 查询房源并校验归属
+        if (house == null || !house.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "房源不存在或无权访问");
         }
 
         // 2. 新增：校验当前经纪人是否为房源创建人
+        // 新增：校验是否为创建人
         if (!house.getCreateAgentId().equals(currentAgentId)) {
-            throw new BusinessException(403, "无权删除他人创建的房源");
+            throw new BusinessException(403, "无权操作：仅创建人可删除房源");
         }
+
 
         // 2. 复制房源信息到备份表
         HouseBackup backup = new HouseBackup();

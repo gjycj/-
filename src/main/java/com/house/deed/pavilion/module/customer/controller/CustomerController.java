@@ -7,6 +7,7 @@ import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.RoleUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
+import com.house.deed.pavilion.module.customer.dto.CustomerQueryDTO;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.service.ICustomerService;
 import com.house.deed.pavilion.module.customer.vo.CustomerFullFlowVO;
@@ -123,20 +124,10 @@ public class CustomerController {
     @GetMapping("/page")
     public ResultDTO<Page<Customer>> getCustomerPage(
             @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize) {
-
-        Long tenantId = TenantContext.getTenantId();
-        Long currentAgentId = AgentContext.getAgentId();
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestBody CustomerQueryDTO query) {
         Page<Customer> page = new Page<>(pageNum, pageSize);
-
-        Page<Customer> resultPage = customerService.page(page,
-                new LambdaQueryWrapper<Customer>()
-                        .eq(Customer::getTenantId, tenantId)
-                        // 非管理员只能查询自己创建的客户
-                        .eq(!RoleUtil.isAdmin() && !RoleUtil.isStoreManager(),
-                                Customer::getCreateAgentId, currentAgentId)
-                        .orderByDesc(Customer::getCreateTime)
-        );
+        Page<Customer> resultPage = customerService.getCustomerPage(page, query);
         return ResultDTO.success(resultPage);
     }
 

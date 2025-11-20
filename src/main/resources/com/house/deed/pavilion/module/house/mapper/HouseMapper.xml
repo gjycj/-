@@ -59,11 +59,19 @@
         <!-- MyBatis-Plus 会自动拼接分页参数（LIMIT/OFFSET 等） -->
     </select>
 
+    <!-- 修改getHousePage查询，适配HouseQueryDTO参数 -->
     <select id="getHousePage" resultMap="HouseWithRelationsResultMap">
         SELECT h.* FROM house h
-        WHERE h.tenant_id = #{tenantId}
-        <if test="houseNo != null and houseNo != ''">AND h.house_no LIKE CONCAT('%', #{houseNo}, '%')</if>
-        <if test="status != null and status != ''">AND h.status = #{status}</if>
+        WHERE h.tenant_id = #{queryDTO.tenantId}  <!-- 实际由代码层传入tenantId，此处仅为示例 -->
+        <if test="queryDTO.houseNo != null and queryDTO.houseNo != ''">
+            AND h.house_no LIKE CONCAT('%', #{queryDTO.houseNo}, '%')
+        </if>
+        <if test="queryDTO.status != null and queryDTO.status != ''">
+            AND h.status = #{queryDTO.status}
+        </if>
+        <if test="queryDTO.transactionType != null and queryDTO.transactionType != ''">
+            AND h.transaction_type = #{queryDTO.transactionType}
+        </if>
         LIMIT #{page.offset}, #{page.size}
     </select>
 

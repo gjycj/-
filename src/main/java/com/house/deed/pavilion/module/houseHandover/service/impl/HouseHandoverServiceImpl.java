@@ -5,10 +5,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.BeanConvertUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.common.util.ValidateUtil;
 import com.house.deed.pavilion.module.contract.service.IContractService;
+import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.service.IHouseService;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
 import com.house.deed.pavilion.module.houseHandover.mapper.HouseHandoverMapper;
@@ -64,10 +66,14 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
     @Transactional(rollbackFor = Exception.class)
     public Long createHandover(HouseHandoverDTO dto) {
         Long tenantId = TenantContext.getTenantId();
-
-        // 校验房源存在性（当前租户）
-        if (!houseService.existsById(dto.getHouseId())) {
+        Long currentAgentId = AgentContext.getAgentId();
+        // 1. 校验房源存在性及归属（当前租户+当前经纪人创建）
+        House house = houseService.getById(dto.getHouseId());
+        if (house == null || !house.getTenantId().equals(tenantId)) {
             throw new BusinessException(400, "房源不存在或无权访问");
+        }
+        if (!house.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权为该房源创建交接记录：仅房源创建人可操作");
         }
 
         // 2. 草稿状态无需校验交接人、接收人等必填字段
@@ -149,6 +155,16 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
     @Override
     public Page<HouseHandover> getHandoverPageByHouse(Page<HouseHandover> page, Long houseId) {
         Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+
+        // 1. 校验房源是否为当前经纪人创建
+        House house = houseService.getById(houseId);
+        if (house == null || !house.getTenantId().equals(tenantId)
+                || !house.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权访问该房源的交接记录");
+        }
+
+        // 2. 查询该房源的交接记录
         QueryWrapper<HouseHandover> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("tenant_id", tenantId)
                 .eq("house_id", houseId)

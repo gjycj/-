@@ -2,6 +2,8 @@ package com.house.deed.pavilion.module.visitRecord.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.house.deed.pavilion.common.util.AgentContext;
+import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.common.util.ValidateUtil;
 import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
 import com.house.deed.pavilion.module.visitRecord.mapper.VisitRecordMapper;
@@ -22,12 +24,16 @@ import java.util.List;
 public class VisitRecordServiceImpl extends ServiceImpl<VisitRecordMapper, VisitRecord> implements IVisitRecordService {
 
     @Override
-    public List<VisitRecord> getByCustomerId(Long customerId, Long tenantId) {
-        return lambdaQuery()
-                .eq(VisitRecord::getCustomerId, customerId)
-                .eq(VisitRecord::getTenantId, tenantId)
-                .orderByDesc(VisitRecord::getVisitTime)
-                .list();
+    public List<VisitRecord> getByCustomerId(Long customerId) {
+        Long currentAgentId = AgentContext.getAgentId();
+        Long tenantId = TenantContext.getTenantId();
+
+        return baseMapper.selectList(
+                new LambdaQueryWrapper<VisitRecord>()
+                        .eq(VisitRecord::getTenantId, tenantId)
+                        .eq(VisitRecord::getAgentId, currentAgentId) // 仅查询自己的带看记录
+                        .eq(VisitRecord::getCustomerId, customerId)
+        );
     }
 
     @Override

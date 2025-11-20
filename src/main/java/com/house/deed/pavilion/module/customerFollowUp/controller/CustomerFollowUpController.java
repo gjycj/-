@@ -106,18 +106,6 @@ public class CustomerFollowUpController {
             throw new BusinessException(403, "无权访问该客户");
         }
 
-        // 4. 校验当前经纪人是否为客户创建者（核心权限控制）
-        // 仅管理员/店长可操作非本人创建的客户，普通经纪人只能操作自己创建的客户
-        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()) {
-            if (!currentAgentId.equals(customer.getCreateAgentId())) {
-                throw new BusinessException(403, "无权为非本人创建的客户添加跟进记录");
-            }
-            // 确保跟进记录的经纪人ID与当前操作人一致（防止代填）
-            if (!followUp.getAgentId().equals(currentAgentId)) {
-                throw new BusinessException(400, "跟进记录的经纪人ID必须与当前操作人一致");
-            }
-        }
-
         // 5. 关联经纪人合法性校验（存在、在职且属于当前租户）
         Agent agent = agentService.getById(followUp.getAgentId());
         if (agent == null) {
@@ -128,6 +116,11 @@ public class CustomerFollowUpController {
         }
         if (agent.getStatus() != 1) { // 1-在职
             throw new BusinessException(400, "经纪人状态异常（非在职），无法执行跟进");
+        }
+
+        // 新增：校验客户是否为当前经纪人创建
+        if (!customer.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权跟进：仅客户创建人可添加跟进记录");
         }
 
         // 6. 跟进时间合理性校验

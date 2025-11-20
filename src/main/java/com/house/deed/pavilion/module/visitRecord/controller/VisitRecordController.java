@@ -129,6 +129,10 @@ public class VisitRecordController {
         if (house == null || !house.getTenantId().equals(currentTenantId)) {
             throw new BusinessException(404, "房源不存在或无权访问");
         }
+        // 新增：校验房源是否为当前经纪人创建
+        if (!house.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权带看：该房源不属于当前经纪人");
+        }
         // 额外校验：房源状态必须为可带看状态（如在售/在租）
         if (!Arrays.asList("ON_SALE", "FOR_RENT").contains(house.getStatus().toString())) {
             throw new BusinessException(400, "房源状态不允许带看（当前状态：" + house.getStatus() + "）");

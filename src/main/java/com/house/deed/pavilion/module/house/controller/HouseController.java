@@ -8,6 +8,7 @@ import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.house.dto.HouseAddDTO;
+import com.house.deed.pavilion.module.house.dto.HouseQueryDTO;
 import com.house.deed.pavilion.module.house.entity.House;
 import com.house.deed.pavilion.module.house.repository.TransactionType;
 import com.house.deed.pavilion.module.house.service.IHouseService;
@@ -157,14 +158,10 @@ public class HouseController {
             @Parameter(description = "每页条数，默认10")
             @RequestParam(defaultValue = "10") Integer pageSize,
 
-            @Parameter(description = "房号（模糊查询）")
-            @RequestParam() String houseNo,
-
-            @Parameter(description = "房源状态（精确匹配，可选值：ON_SALE/RESERVED/SOLD/OFF_SHELF）")
-            @RequestParam() String status) {
+            @RequestBody HouseQueryDTO dto) {
 
         Page<House> page = new Page<>(pageNum, pageSize);
-        Page<House> resultPage = houseService.getHousePage(page, houseNo, status);
+        Page<House> resultPage = houseService.getHousePage(page, dto);
         return ResultDTO.success(resultPage);
     }
 
@@ -196,6 +193,11 @@ public class HouseController {
         }
         if (!existingHouse.getTenantId().equals(tenantId)) {
             throw new BusinessException(404, "无权访问该房源");
+        }
+        Long currentAgentId = AgentContext.getAgentId();
+        // 新增：校验是否为创建人
+        if (!existingHouse.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权操作：仅创建人可更新房源");
         }
 
         // 4. 强制设置租户ID（防止篡改）和更新时间
