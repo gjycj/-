@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.AgentContext;
+import com.house.deed.pavilion.common.util.RoleUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.agent.entity.Agent;
 import com.house.deed.pavilion.module.agent.service.IAgentService;
@@ -112,8 +113,6 @@ public class VisitRecordController {
             throw new BusinessException(400, "带看时间不能为空");
         }
 
-
-
         // 2. 租户隔离校验（确保操作当前租户数据）
         Long currentTenantId = TenantContext.getTenantId();
         if (record.getTenantId() == null || !record.getTenantId().equals(currentTenantId)) {
@@ -142,6 +141,10 @@ public class VisitRecordController {
         Customer customer = customerService.getById(record.getCustomerId());
         if (customer == null || !customer.getTenantId().equals(currentTenantId)) {
             throw new BusinessException(404, "客户不存在或无权访问");
+        }
+        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()
+                && !customer.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权带看他人创建的客户");
         }
 
         // 新增：校验客户状态是否为活跃
@@ -179,10 +182,24 @@ public class VisitRecordController {
                 && (record.getIntentionLevel() < 1 || record.getIntentionLevel() > 3)) {
             throw new BusinessException(400, "意向程度必须为1-3（1-低，2-中，3-高）");
         }
-
+        Long tenantId = TenantContext.getTenantId();
         // 9. 自动填充创建时间（覆盖前端传入值，确保准确性）
         record.setCreateTime(now);
+        // 3. 校验房源归属（房源的create_agent_id必须是当前经纪人）
+        if (record.getHouseId() == null) {
+            throw new BusinessException(400, "房源ID不能为空");
+        }
+        if (!house.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "房源不存在或无权访问");
+        }
+        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()
+                && !house.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权带看他人创建的房源");
+        }
 
+        // 4. 保存带看记录（自动填充当前经纪人ID到agent_id字段）
+        record.setAgentId(currentAgentId);
+        record.setTenantId(tenantId);
         // 10. 保存带看记录
         boolean success = visitRecordService.save(record);
         if (!success) {

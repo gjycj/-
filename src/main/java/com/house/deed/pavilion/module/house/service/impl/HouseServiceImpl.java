@@ -6,11 +6,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.house.deed.pavilion.common.aspect.annotation.CheckAgentPermission;
 import com.house.deed.pavilion.common.exception.BusinessException;
-import com.house.deed.pavilion.common.util.AgentContext;
-import com.house.deed.pavilion.common.util.BeanConvertUtil;
-import com.house.deed.pavilion.common.util.TenantContext;
-import com.house.deed.pavilion.common.util.ValidateUtil;
+import com.house.deed.pavilion.common.util.*;
 import com.house.deed.pavilion.module.agent.entity.Agent;
 import com.house.deed.pavilion.module.agent.service.IAgentService;
 import com.house.deed.pavilion.module.building.entity.Building;
@@ -539,40 +537,37 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
      * @return 操作成功返回true，否则返回false
      * @throws RuntimeException 当备份失败时抛出，触发事务回滚
      */
+    /**
+     * 删除房源并备份（使用@CheckAgentPermission自动校验权限）
+     */
     @Transactional
     @Override
+    @CheckAgentPermission(
+            entityClass = House.class, // 资源实体是房源
+            resourceIdParam = "id",    // 方法参数中资源ID的变量名是"id"
+            creatorField = "createAgentId" // 房源的创建人字段是createAgentId
+    )
     public boolean deleteAndBackup(Long id, String operator) {
-        // 1. 查询原房源信息
+        // 1. 权限校验已通过切面自动完成，此处无需重复校验
+
+        // 2. 查询原房源信息（仅需获取数据，无需再校验）
         House house = getById(id);
-        Long currentAgentId = AgentContext.getAgentId(); // 假设从上下文获取当前经纪人ID
         Long tenantId = TenantContext.getTenantId();
 
-        // 1. 查询房源并校验归属
-        if (house == null || !house.getTenantId().equals(tenantId)) {
-            throw new BusinessException(404, "房源不存在或无权访问");
-        }
-
-        // 2. 新增：校验当前经纪人是否为房源创建人
-        // 新增：校验是否为创建人
-        if (!house.getCreateAgentId().equals(currentAgentId)) {
-            throw new BusinessException(403, "无权操作：仅创建人可删除房源");
-        }
-
-
-        // 2. 复制房源信息到备份表
+        // 3. 复制房源信息到备份表
         HouseBackup backup = new HouseBackup();
-        BeanUtil.copyProperties(house, backup); // 复制共同字段
-        backup.setOriginalId(house.getId());    // 记录原房源ID
-        backup.setDeleteTime(LocalDateTime.now()); // 记录删除时间
-        backup.setDeleteOperator(operator);     // 记录删除人
+        BeanUtil.copyProperties(house, backup);
+        backup.setOriginalId(house.getId());
+        backup.setDeleteTime(LocalDateTime.now());
+        backup.setDeleteOperator(operator);
 
-        // 3. 先保存备份，失败则取消删除
+        // 4. 保存备份
         boolean backupSuccess = houseBackupService.save(backup);
         if (!backupSuccess) {
             throw new RuntimeException("房源备份失败，取消删除操作");
         }
 
-        // 4. 删除原房源
+        // 5. 删除原房源
         return removeById(id);
     }
 
