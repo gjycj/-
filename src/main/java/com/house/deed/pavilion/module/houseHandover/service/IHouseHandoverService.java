@@ -62,4 +62,6 @@ public interface IHouseHandoverService extends IService<HouseHandover> {
      * 获取指定房源+合同的最新退租交接记录
      */
     HouseHandover getLatestCheckOut(Long houseId, Long contractId, Long tenantId);
+
+    List<HouseHandover> getByHouseId(Long houseId);
 }

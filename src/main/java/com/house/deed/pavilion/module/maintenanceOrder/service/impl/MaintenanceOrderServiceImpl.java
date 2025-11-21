@@ -76,11 +76,13 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
             dataIdParam = "houseId" // 方法中「房源ID」的参数名（与方法参数 Long houseId 对应）
     )
     public List<MaintenanceOrder> getByHouseId(Long houseId) {
-        // 1. 仅保留基础参数校验（核心权限校验、租户过滤由切面接管）
+        // 1. 基础参数校验
         ValidateUtil.notNull(houseId, "房源ID不能为空");
 
         // 2. 业务查询逻辑：仅保留核心业务条件（houseId匹配）
-        // 切面会自动添加 tenantId 过滤，无需手动写 eq(MaintenanceOrder::getTenantId, tenantId)
+        // 切面会自动添加以下权限过滤：
+        // 1. 租户隔离：eq(MaintenanceOrder::getTenantId, TenantContext.getTenantId()
+        // 2. 房源创建人校验：通过houseId查询房源的createAgentId，需等于当前经纪人ID（AgentContext.getAgentId()）
         return baseMapper.selectList(new LambdaQueryWrapper<MaintenanceOrder>()
                 .eq(MaintenanceOrder::getHouseId, houseId)
         );

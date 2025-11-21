@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.house.deed.pavilion.common.aspect.annotation.AgentDataPermission;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.BeanConvertUtil;
@@ -102,6 +103,24 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
         return handover.getId();
     }
 
+    @Override
+    // 查询指定房源的交接记录：关联房源创建人权限
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = House.class, // 关联核心实体：房源
+            creatorField = "createAgentId", // 房源的创建人字段
+            dataIdParam = "houseId" // 方法中房源ID的参数名（与方法参数Long houseId对应）
+    )
+    public List<HouseHandover> getByHouseId(Long houseId) {
+        ValidateUtil.notNull(houseId, "房源ID不能为空");
+        Long tenantId = TenantContext.getTenantId();
+        // 基础查询逻辑（切面自动添加租户隔离和房源创建人过滤）
+        return lambdaQuery()
+                .eq(HouseHandover::getHouseId, houseId)
+                .eq(HouseHandover::getTenantId, tenantId)
+                .list();
+    }
+
     /**
      * 校验已确认状态下的必填字段
      */
@@ -186,6 +205,13 @@ public class HouseHandoverServiceImpl extends ServiceImpl<HouseHandoverMapper, H
     // 新增：更新交接记录
     @Override
     @Transactional(rollbackFor = Exception.class)
+    // 更新交接记录：关联房源创建人权限
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.UPDATE,
+            entityClass = House.class,
+            creatorField = "createAgentId",
+            dataIdParam = "dto.houseId" // 从DTO中获取房源ID（参数为HouseHandoverDTO dto）
+    )
     public boolean updateHandover(Long id, HouseHandoverDTO dto) {
         // 校验记录存在性及租户归属
         if (existsByIdAndTenant(id)) {
