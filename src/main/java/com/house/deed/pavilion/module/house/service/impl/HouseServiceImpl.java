@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.house.deed.pavilion.common.aspect.annotation.CheckAgentPermission;
+import com.house.deed.pavilion.common.aspect.annotation.AgentDataPermission;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.*;
 import com.house.deed.pavilion.module.agent.entity.Agent;
@@ -45,7 +45,6 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,7 +56,6 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 
@@ -185,6 +183,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @AgentDataPermission(operation = AgentDataPermission.OperationType.CREATE, entityClass = House.class)
     public Long addHouse(HouseAddDTO dto, Long currentAgentId) {
         log.info("开始录入房源：经纪人ID={}，房号={}", currentAgentId, dto.getHouseNo());
 
@@ -501,6 +500,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
 
 
     @Override
+    @AgentDataPermission(operation = AgentDataPermission.OperationType.QUERY, entityClass = House.class)
     public Page<House> getHousePage(Page<House> page, HouseQueryDTO queryDTO) {
         Long currentAgentId = AgentContext.getAgentId(); // 假设通过上下文获取当前经纪人ID
         Long tenantId = TenantContext.getTenantId();
@@ -542,11 +542,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
      */
     @Transactional
     @Override
-    @CheckAgentPermission(
-            entityClass = House.class, // 资源实体是房源
-            resourceIdParam = "id",    // 方法参数中资源ID的变量名是"id"
-            creatorField = "createAgentId" // 房源的创建人字段是createAgentId
-    )
+    @AgentDataPermission(operation = AgentDataPermission.OperationType.DELETE, entityClass = House.class, dataIdParam = "houseId")
     public boolean deleteAndBackup(Long id, String operator) {
         // 1. 权限校验已通过切面自动完成，此处无需重复校验
 
