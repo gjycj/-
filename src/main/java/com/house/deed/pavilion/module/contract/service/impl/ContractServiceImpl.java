@@ -4,6 +4,7 @@ import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.ContractValidationUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.common.util.ValidateUtil;
@@ -107,7 +108,19 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         ValidateUtil.notNull(houseId, "房源ID不能为空");
         Long tenantId = TenantContext.getTenantId();
         ValidateUtil.notNull(tenantId, "租户上下文获取失败");
+        Long currentAgentId = AgentContext.getAgentId();
+        ValidateUtil.notNull(currentAgentId, "经纪人上下文获取失败");
 
+        // 1. 校验房源是否为当前经纪人创建（核心权限控制）
+        House house = houseService.getById(houseId);
+        if (house == null || !house.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "房源不存在或不属于当前租户");
+        }
+        if (!house.getCreateAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权访问该房源的合同：仅房源创建人可查看");
+        }
+
+        // 2. 查询该房源且属于当前租户的合同
         return baseMapper.selectList(new LambdaQueryWrapper<Contract>()
                 .eq(Contract::getHouseId, houseId)
                 .eq(Contract::getTenantId, tenantId));

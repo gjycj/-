@@ -3,6 +3,7 @@ package com.house.deed.pavilion.module.maintenanceOrder.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.house.deed.pavilion.common.aspect.annotation.AgentDataPermission;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.TenantContext;
@@ -67,20 +68,22 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
     }
 
     @Override
+    // 核心注解：标记该方法需要切面处理权限
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY, // 操作类型：查询
+            entityClass = House.class, // 关联核心实体：房源（权限依赖房源的创建人）
+            creatorField = "createAgentId", // 房源的创建人字段名（House类中的字段）
+            dataIdParam = "houseId" // 方法中「房源ID」的参数名（与方法参数 Long houseId 对应）
+    )
     public List<MaintenanceOrder> getByHouseId(Long houseId) {
+        // 1. 仅保留基础参数校验（核心权限校验、租户过滤由切面接管）
         ValidateUtil.notNull(houseId, "房源ID不能为空");
-        Long tenantId = TenantContext.getTenantId();
-        ValidateUtil.notNull(tenantId, "租户上下文获取失败");
-        Long currentAgentId = AgentContext.getAgentId();
-        // 1. 校验房源是否为当前经纪人创建
-        House house = houseService.getById(houseId);
-        if (house == null || !house.getTenantId().equals(tenantId)
-                || !house.getCreateAgentId().equals(currentAgentId)) {
-            throw new BusinessException(403, "无权访问该房源的维修工单");
-        }
+
+        // 2. 业务查询逻辑：仅保留核心业务条件（houseId匹配）
+        // 切面会自动添加 tenantId 过滤，无需手动写 eq(MaintenanceOrder::getTenantId, tenantId)
         return baseMapper.selectList(new LambdaQueryWrapper<MaintenanceOrder>()
                 .eq(MaintenanceOrder::getHouseId, houseId)
-                .eq(MaintenanceOrder::getTenantId, tenantId));
+        );
     }
 
 

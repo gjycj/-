@@ -62,7 +62,13 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-mysql</artifactId>
         </dependency>
-
+        <!-- Spring 核心依赖（包含 LocalVariableTableParameterNameDiscoverer） -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <!-- 版本号需与项目中 Spring 其他模块一致，如 5.3.x 或 6.x -->
+            <version>6.2.11</version>
+        </dependency>
         <!-- MyBatis-Plus 框架 -->
         <dependency>
             <groupId>com.baomidou</groupId>
@@ -170,6 +176,9 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
