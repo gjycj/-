@@ -5,13 +5,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.house.deed.pavilion.common.aspect.annotation.AgentDataPermission;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.RoleUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.mapper.ContractMapper;
-import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.customer.dto.CustomerQueryDTO;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.mapper.CustomerMapper;
@@ -49,52 +49,61 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
     @Resource
     private ICustomerFollowUpService followUpService;
 
-    // 在CustomerServiceImpl中新增该方法
+    /**
+     * 查询权限优化点：
+     * 1. 移除手动动租户归属校验，通过注解自动校验
+     * 2. 移除创建者权限判断，由注解切面控制
+     */
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = Customer.class,
+            dataIdParam = "customerId" // 从参数获取客户ID进行权限校验
+    )
     public CustomerFullFlowVO getFullFlowByCustomerId(Long customerId, Long tenantId) {
-        // 1. 校验客户存在性及租户归属
+        // 1. 注解已自动完成：客户存在性校验、租户归属校验、创建者权限校验
         Customer customer = getById(customerId);
-        if (customer == null || !customer.getTenantId().equals(tenantId)) {
-            throw new BusinessException(404, "客户不存在或无权访问");
-        }
 
-        // 2. 查询关联数据
-        // 2.1 查询带看记录（需依赖IVisitRecordService的getByCustomerId方法）
+        // 2. 查询关联数据（注：带看记录/合同的权限由各自服务的注解控制）
         List<VisitRecord> visitRecords = visitRecordService.getByCustomerId(customerId);
-
-        // 2.2 查询合同记录（需依赖IContractService的getByCustomerId方法）
         List<Contract> contracts = contractMapper.selectList(
-                Wrappers.<Contract>lambdaQuery().eq(Contract::getCustomerId, customerId).eq(Contract::getTenantId, tenantId)
+                Wrappers.<Contract>lambdaQuery()
+                        .eq(Contract::getCustomerId, customerId)
+                        .eq(Contract::getTenantId, tenantId)
         );
-
-        // 2.3 查询跟进记录（此处即为用户提到的代码）
         Page<CustomerFollowUp> followUpPage = followUpService.getByCustomerId(
-                new Page<>(1, Integer.MAX_VALUE),  // 第一页，最大条数获取全量
+                new Page<>(1, Integer.MAX_VALUE),
                 customerId,
                 tenantId
         );
-        List<CustomerFollowUp> followUps = followUpPage.getRecords();
 
-        // 3. 封装VO对象
+        // 3. 封装VO
         CustomerFullFlowVO vo = new CustomerFullFlowVO();
-        BeanUtils.copyProperties(customer, vo); // 复制客户基本信息
+        BeanUtils.copyProperties(customer, vo);
         vo.setVisitRecords(visitRecords);
         vo.setContracts(contracts);
-        vo.setFollowUps(followUps);
-
+        vo.setFollowUps(followUpPage.getRecords());
         return vo;
     }
 
-    // 在客户Service的分页查询方法中添加过滤
+    /**
+     * 权限优化点：
+     * 1. 移除手动拼接的createAgentId条件，由注解自动添加
+     * 2. 保留租户隔离（注解通常会自动处理，此处冗余保留确保安全）
+     */
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = Customer.class,
+            creatorField = "createAgentId" // 过滤条件：create_agent_id = 当前经纪人ID
+    )
     public Page<Customer> getCustomerPage(Page<Customer> page, CustomerQueryDTO query) {
-        Long currentAgentId = AgentContext.getAgentId();
         Long tenantId = TenantContext.getTenantId();
 
         return baseMapper.selectPage(page,
                 new LambdaQueryWrapper<Customer>()
-                        .eq(Customer::getTenantId, tenantId)
-                        .eq(Customer::getCreateAgentId, currentAgentId) // 仅查询自己的客户
+                        .eq(Customer::getTenantId, tenantId) // 租户隔离（注解通常已包含，冗余保留）
+                        // 注解自动添加：eq(Customer::getCreateAgentId, currentAgentId)
                         .like(StrUtil.isNotBlank(query.getName()), Customer::getName, query.getName())
                         .eq(StrUtil.isNotBlank(query.getStatus()), Customer::getStatus, query.getStatus())
                         .eq(StrUtil.isNotBlank(query.getType()), Customer::getCustomerType, query.getType())
@@ -106,7 +115,17 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
         return this.exists(Wrappers.<Customer>lambdaQuery().eq(Customer::getId, id));
     }
 
+    /**
+     * 权限优化点：
+     * 1. 移除手动动的isPrivileged判断和createAgentId过滤，注解注解自动处理
+     * 2. 注解会根据角色自动动适配：管理员/店长查全部，普通经纪人纪人查自己的
+     */
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = Customer.class,
+            creatorField = "createAgentId"
+    )
     public Page<Customer> getCustomerPageByCondition(
             Page<Customer> page,
             Long intendedRegionId,
@@ -116,51 +135,47 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
             String status,
             Long currentAgentId) {
 
-
         Long tenantId = TenantContext.getTenantId();
-        // 获取当前登录经纪人ID
-        // 判断当前角色是否为管理员或店长（需确保RoleUtil工具类已实现）
-        boolean isPrivileged = RoleUtil.isAdmin() || RoleUtil.isStoreManager();
-
         LambdaQueryWrapper<Customer> queryWrapper = Wrappers.lambdaQuery();
 
-        // 1. 多租户隔离（必加条件）
+        // 1. 租户隔离
         queryWrapper.eq(Customer::getTenantId, tenantId);
 
-        // 2. 权限过滤：非管理员/店长仅能查看自己创建的客户
-        if (!isPrivileged) {
-            queryWrapper.eq(Customer::getCreateAgentId, currentAgentId);
-        }
+        // 2. 注解自动添加：非管理员时拼接加eq(Customer::getCreateAgentId, currentAgentId)
 
-        // 3. 业务条件筛选（仅当参数不为空时添加）
+        // 3. 业务条件筛选
         queryWrapper.eq(intendedRegionId != null, Customer::getIntendedRegionId, intendedRegionId)
                 .ge(priceMin != null, Customer::getIntendedPriceMin, priceMin)
                 .le(priceMax != null, Customer::getIntendedPriceMax, priceMax)
                 .eq(customerType != null, Customer::getCustomerType, customerType)
                 .eq(status != null, Customer::getStatus, status)
-                .orderByDesc(Customer::getCreateTime); // 默认按创建时间倒序
+                .orderByDesc(Customer::getCreateTime);
 
         return baseMapper.selectPage(page, queryWrapper);
     }
 
+    /**
+     * 权限优化点：
+     * 1. 移除手动的租户归属和创建者权限校验
+     * 2. 通过注解解切面自动校验：仅创建者/管理员可操作
+     */
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.UPDATE,
+            entityClass = Customer.class,
+            dataIdParam = "customerId" // 从参数获取客户ID
+    )
     public boolean updateStatus(Long customerId, String targetStatus, Long operatorId) {
-        Long tenantId = TenantContext.getTenantId();
-
-        // 1. 校验客户存在性及租户归属
+        // 1. 注解解已自动完成：客户存在性、租户归属、创建者权限校验
         Customer customer = baseMapper.selectById(customerId);
-        if (customer == null || !customer.getTenantId().equals(tenantId)) {
-            throw new BusinessException(404, "客户不存在或无权访问");
-        }
 
-        // 2. 校验目标状态合法性
+        // 2. 状态合法性校验（业务逻辑保留）
         if (!("ACTIVE".equals(targetStatus) || "DEALED".equals(targetStatus) || "DORMANT".equals(targetStatus))) {
             throw new BusinessException(400, "目标状态只能是ACTIVE/DEALED/DORMANT");
         }
 
-        // 3. 校验状态流转合法性
-        String currentStatus = customer.getStatus();
-        validateStatusTransition(currentStatus, targetStatus);
+        // 3. 状态流转校验
+        validateStatusTransition(customer.getStatus(), targetStatus);
 
         // 4. 更新状态
         customer.setStatus(targetStatus);
@@ -169,11 +184,7 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
     }
 
     /**
-     * 校验状态流转是否合法
-     * 允许的流转规则：
-     * ACTIVE → DEALED（成交）、ACTIVE → DORMANT（休眠）
-     * DORMANT → ACTIVE（激活）
-     * DEALED 不可流转（一旦成交状态固定）
+     * 校验状态流转合法性
      */
     private void validateStatusTransition(String currentStatus, String targetStatus) {
         if ("DEALED".equals(currentStatus)) {

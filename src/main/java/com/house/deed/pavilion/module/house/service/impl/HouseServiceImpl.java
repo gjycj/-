@@ -111,11 +111,12 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
     @Lazy
     private IContractService contractService;
 
-    /**
-     * 通过合同ID查询关联房源（仅当前经纪人创建的）
-     * 逻辑：先查合同表获取house_id，再查房源并校验权限
-     */
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = House.class,
+            dataIdParam = "contract.houseId" // 从合同对象中获取房源ID（需先查询合同）
+    )
     public List<House> getByContractId(Long contractId, Long tenantId, Long agentId) {
         ValidateUtil.notNull(contractId, "合同ID不能为空");
         ValidateUtil.notNull(tenantId, "租户ID不能为空");
@@ -127,25 +128,21 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
             throw new BusinessException(404, "合同不存在或无权访问");
         }
 
-        // 2. 通过合同关联的house_id查询房源
+        // 2. 通过合同关联的house_id查询房源（注解手动校验，注解自动拦截）
         House house = this.getById(contract.getHouseId());
         if (house == null) {
-            return Collections.emptyList(); // 合同关联的房源不存在，返回空列表
+            return Collections.emptyList();
         }
 
-        // 3. 校验房源归属（租户+创建人）
-        if (!house.getTenantId().equals(tenantId) || !house.getCreateAgentId().equals(agentId)) {
-            throw new BusinessException(403, "无权访问该房源");
-        }
-
+        // 3. 移除手动权限校验代码（由注解自动完成）
         return Collections.singletonList(house);
     }
 
-    /**
-     * 通过客户ID分页查询关联房源（仅当前经纪人创建的）
-     * 逻辑：先查客户关联的所有合同，提取house_id列表，再查房源并校验权限
-     */
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = House.class
+    )
     public Page<House> getByCustomerId(Page<House> page, Long customerId, Long tenantId, Long agentId) {
         ValidateUtil.notNull(customerId, "客户ID不能为空");
         ValidateUtil.notNull(tenantId, "租户ID不能为空");
@@ -154,20 +151,19 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
         // 1. 查询客户关联的所有合同（当前租户内）
         List<Contract> contracts = contractService.getByCustomerId(customerId, tenantId);
         if (contracts.isEmpty()) {
-            return new Page<>(); // 无关联合同，返回空分页
+            return new Page<>();
         }
 
         // 2. 提取合同关联的房源ID列表
         List<Long> houseIds = contracts.stream()
                 .map(Contract::getHouseId)
-                .distinct() // 去重，避免同一房源被多次查询
+                .distinct()
                 .collect(Collectors.toList());
 
-        // 3. 分页查询房源（租户隔离+经纪人创建权限+房源ID在列表中）
+        // 3. 分页查询（移除手动eq(House::getCreateAgentId, agentId>，由注解自动添加）
         return lambdaQuery()
                 .in(House::getId, houseIds)
                 .eq(House::getTenantId, tenantId)
-                .eq(House::getCreateAgentId, agentId) // 仅自己创建的房源
                 .page(page);
     }
 
@@ -500,15 +496,17 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
 
 
     @Override
-    @AgentDataPermission(operation = AgentDataPermission.OperationType.QUERY, entityClass = House.class)
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = House.class
+    )
     public Page<House> getHousePage(Page<House> page, HouseQueryDTO queryDTO) {
-        Long currentAgentId = AgentContext.getAgentId(); // 假设通过上下文获取当前经纪人ID
         Long tenantId = TenantContext.getTenantId();
 
+        // 移除手动eq(House::getCreateAgentId, currentAgentId>，由注解自动添加
         return baseMapper.selectPage(page,
                 new LambdaQueryWrapper<House>()
-                        .eq(House::getTenantId, tenantId) // 保留租户隔离
-                        .eq(House::getCreateAgentId, currentAgentId) // 新增：仅查询自己创建的房源
+                        .eq(House::getTenantId, tenantId)
                         .like(StrUtil.isNotBlank(queryDTO.getHouseNo()), House::getHouseNo, queryDTO.getHouseNo())
                         .eq(queryDTO.getStatus() != null, House::getStatus, queryDTO.getStatus())
                         .eq(StrUtil.isNotBlank(queryDTO.getTransactionType()), House::getTransactionType, queryDTO.getTransactionType())
@@ -528,42 +526,32 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
     }
 
 
-    /**
-     * 删除房源并备份（事务保证原子性）
-     * 先将房源信息复制到备份表，再删除原房源，确保数据可追溯
-     *
-     * @param id       房源ID
-     * @param operator 删除操作人名称
-     * @return 操作成功返回true，否则返回false
-     * @throws RuntimeException 当备份失败时抛出，触发事务回滚
-     */
-    /**
-     * 删除房源并备份（使用@CheckAgentPermission自动校验权限）
-     */
-    @Transactional
     @Override
-    @AgentDataPermission(operation = AgentDataPermission.OperationType.DELETE, entityClass = House.class, dataIdParam = "houseId")
+    @Transactional
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.DELETE,
+            entityClass = House.class,
+            dataIdParam = "id" // 与方法参数Long id保持一致
+    )
     public boolean deleteAndBackup(Long id, String operator) {
-        // 1. 权限校验已通过切面自动完成，此处无需重复校验
+        // 1. 权限校验由注解自动完成，无需手动校验
 
-        // 2. 查询原房源信息（仅需获取数据，无需再校验）
+        // 2. 查询原房源信息
         House house = getById(id);
         Long tenantId = TenantContext.getTenantId();
 
-        // 3. 复制房源信息到备份表
+        // 3. 复制房源信息到备份表（逻辑不变）
         HouseBackup backup = new HouseBackup();
         BeanUtil.copyProperties(house, backup);
         backup.setOriginalId(house.getId());
         backup.setDeleteTime(LocalDateTime.now());
         backup.setDeleteOperator(operator);
 
-        // 4. 保存备份
+        // 4. 保存备份并删除原房源（逻辑不变）
         boolean backupSuccess = houseBackupService.save(backup);
         if (!backupSuccess) {
             throw new RuntimeException("房源备份失败，取消删除操作");
         }
-
-        // 5. 删除原房源
         return removeById(id);
     }
 

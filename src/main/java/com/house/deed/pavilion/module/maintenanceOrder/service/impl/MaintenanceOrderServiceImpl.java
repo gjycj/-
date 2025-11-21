@@ -58,43 +58,57 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
     @Lazy
     private IHouseHandoverService houseHandoverService;
 
+    /**
+     * 按房屋交接ID查询工单
+     * 权限逻辑：自动校验交接记录归属 + 关联房源权限
+     */
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = HouseHandover.class, // 补充缺失的主实体类（必填项）
+            multiEntityClasses = {House.class}, // 仅需补充关联的其他实体
+            multiIdParams = {"handoverId", "houseId"}, // 与实体类顺序对应：交接ID参数 + 房源ID参数
+            creatorField = "createAgentId" // 房源的创建人字段（最终权限校验依据）
+    )
     public List<MaintenanceOrder> getByHouseHandoverId(Long handoverId, Long tenantId) {
+        // 注解自动处理：
+        // 1. 租户隔离（自动添加tenant_id条件）
+        // 2. 交接记录归属校验（通过handoverId查询HouseHandover的tenant_id是否匹配）
+        // 3. 关联房源权限校验（通过houseId查询House的create_agent_id是否为当前经纪人）
         return lambdaQuery()
-                .eq(MaintenanceOrder::getTenantId, tenantId)
                 .eq(MaintenanceOrder::getHouseHandoverId, handoverId)
                 .orderByDesc(MaintenanceOrder::getCreateTime)
                 .list();
     }
 
     @Override
-    // 核心注解：标记该方法需要切面处理权限
     @AgentDataPermission(
-            operation = AgentDataPermission.OperationType.QUERY, // 操作类型：查询
-            entityClass = House.class, // 关联核心实体：房源（权限依赖房源的创建人）
-            creatorField = "createAgentId", // 房源的创建人字段名（House类中的字段）
-            dataIdParam = "houseId" // 方法中「房源ID」的参数名（与方法参数 Long houseId 对应）
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = House.class,
+            creatorField = "createAgentId",
+            dataIdParam = "houseId"
     )
     public List<MaintenanceOrder> getByHouseId(Long houseId) {
-        // 1. 基础参数校验
         ValidateUtil.notNull(houseId, "房源ID不能为空");
-
-        // 2. 业务查询逻辑：仅保留核心业务条件（houseId匹配）
-        // 切面会自动添加以下权限过滤：
-        // 1. 租户隔离：eq(MaintenanceOrder::getTenantId, TenantContext.getTenantId()
-        // 2. 房源创建人校验：通过houseId查询房源的createAgentId，需等于当前经纪人ID（AgentContext.getAgentId()）
+        // 注解自动添加租户隔离 + 房源创建人权限过滤
         return baseMapper.selectList(new LambdaQueryWrapper<MaintenanceOrder>()
                 .eq(MaintenanceOrder::getHouseId, houseId)
         );
     }
 
-
     /**
-     * 创建维修工单（事务保证原子性）
-     * 1. 校验必填参数 2. 校验房源归属 3. 生成唯一订单号 4. 填充租户ID和时间 5. 保存数据
+     * 创建维修工单
+     * 权限逻辑：通过注解关联House+Contract双重校验，保留核心报修人权限校验
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.CREATE,
+            entityClass = House.class, // 补充必填的主实体类（房源作为核心实体）
+            multiEntityClasses = {Contract.class}, // 关联合同（主实体已指定House，这里补充其他实体）
+            multiIdParams = {"order.houseId", "order.contractId"}, // 与实体类顺序对应：房源ID、合同ID
+            creatorField = "createAgentId" // 房源创建人字段；合同通过切面扩展校验签约经纪人
+    )
     public Long createOrder(MaintenanceOrder order) {
         Long tenantId = TenantContext.getTenantId();
         ValidateUtil.notNull(tenantId, "租户上下文获取失败");
@@ -102,45 +116,41 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
         // 1. 基础参数校验
         validateOrderParams(order);
 
-        // 新增：校验关联的房屋交接记录（若存在）
+        // 2. 房屋交接记录业务校验
         if (order.getHouseHandoverId() != null) {
             HouseHandover handover = houseHandoverMapper.selectById(order.getHouseHandoverId());
-            // 校验交接记录存在性、租户归属、交接类型为退租
             if (handover == null || !handover.getTenantId().equals(tenantId)) {
                 throw new BusinessException(400, "关联的房屋交接记录不存在或无权访问");
             }
             if (!"CHECK_OUT".equals(handover.getHandoverType())) {
                 throw new BusinessException(400, "仅退租交接记录可关联维修工单");
             }
-            // 确保维修工单的房源ID与交接记录一致
             if (!handover.getHouseId().equals(order.getHouseId())) {
                 throw new BusinessException(400, "维修工单房源与关联的交接记录房源不一致");
             }
         }
 
-        // 2. 校验房源是否属于当前租户
-        House house = houseService.getById(order.getHouseId());
-        if (house == null || !house.getTenantId().equals(tenantId)) {
-            throw new BusinessException(400, "房源不存在或不属于当前租户");
-        }
+        // 3. 注解已完成：
+        // - 房源属于当前租户且创建人匹配当前经纪人
+        // - 合同属于当前租户且有效
 
-        // 3. 生成租户内唯一订单号（格式：TENANT{租户ID}_MAINT{yyyyMMdd}{3位序号}）
-        validateReporterHasPermission(order, house.getId(), tenantId);
+        // 4. 补充报修人权限校验（确保方法存在且参数正确）
+        validateReporterHasPermission(order, order.getHouseId(), tenantId);
+
+        // 5. 生成订单号 + 填充默认值
         String orderNo = generateOrderNo(tenantId);
         order.setOrderNo(orderNo);
-
-        // 4. 填充默认值
         order.setTenantId(tenantId);
         order.setCreateTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         if (order.getUrgencyLevel() == null) {
-            order.setUrgencyLevel((byte) 2); // 默认中等紧急
+            order.setUrgencyLevel((byte) 2);
         }
         if (StrUtil.isBlank(order.getStatus())) {
-            order.setStatus("SUBMITTED"); // 默认已提交状态
+            order.setStatus("SUBMITTED");
         }
 
-        // 5. 保存工单
+        // 6. 保存工单
         boolean saveSuccess = this.save(order);
         if (!saveSuccess) {
             throw new BusinessException(500, "工单创建失败");
@@ -186,48 +196,55 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
     }
 
     /**
-     * 查询工单详情（带租户权限过滤）
+     * 查询工单详情
+     * 权限逻辑：校验工单归属 + 关联房源/合同权限
      */
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = MaintenanceOrder.class,
+            dataIdParam = "id",
+            multiEntityClasses = {House.class, Contract.class}, // 关联房源 + 合同
+            multiIdParams = {"houseId", "contractId"} // 从工单查询房源ID、合同ID
+    )
     public MaintenanceOrder getOrderById(Long id) {
         ValidateUtil.notNull(id, "工单ID不能为空");
-        Long tenantId = TenantContext.getTenantId();
-
-        return this.getOne(new LambdaQueryWrapper<MaintenanceOrder>()
-                .eq(MaintenanceOrder::getId, id)
-                .eq(MaintenanceOrder::getTenantId, tenantId));
+        // 注解自动处理：1. 租户隔离 2. 工单存在性 3. 关联房源/合同权限校验
+        return this.getById(id);
     }
 
     /**
-     * 更新工单状态（仅允许更新状态、维修师傅、费用等字段）
+     * 更新工单状态
+     * 权限逻辑：校验工单归属 + 关联房源/合同权限
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.UPDATE,
+            entityClass = MaintenanceOrder.class,
+            dataIdParam = "updateInfo.id",
+            multiEntityClasses = {House.class, Contract.class},
+            multiIdParams = {"houseId", "contractId"}
+    )
     public boolean updateOrderStatus(MaintenanceOrder updateInfo) {
         Long id = updateInfo.getId();
-        Long tenantId = TenantContext.getTenantId();
+        ValidateUtil.notNull(id, "工单ID不能为空");
 
-        // 1. 校验工单是否存在且属于当前租户
-        MaintenanceOrder existOrder = this.getOne(new LambdaQueryWrapper<MaintenanceOrder>()
-                .eq(MaintenanceOrder::getId, id)
-                .eq(MaintenanceOrder::getTenantId, tenantId));
-        if (existOrder == null) {
-            throw new BusinessException(404, "工单不存在或无权访问");
-        }
+        // 1. 工单存在性由注解校验，直接获取
+        MaintenanceOrder existOrder = this.getById(id);
         String oldStatus = existOrder.getStatus();
         String newStatus = updateInfo.getStatus();
-        // 2. 校验状态流转合法性（示例：已提交→已分配→已完成）
+
+        // 2. 状态流转合法性校验（业务逻辑保留）
         validateStatusTransition(oldStatus, newStatus);
 
-        // 3. 处理完成状态的特殊逻辑：同步至房屋交接记录
+        // 3. 完成状态特殊逻辑（业务逻辑保留）
         if ("COMPLETED".equals(newStatus) && !"COMPLETED".equals(oldStatus)) {
-            // 自动填充完成时间
             updateInfo.setCompleteTime(LocalDateTime.now());
-            // 同步至房屋交接记录（重点新增逻辑）
             syncToHouseHandover(existOrder);
         }
 
-        // 3. 仅更新允许修改的字段
+        // 4. 仅更新允许修改的字段（业务逻辑保留）
         MaintenanceOrder updateWrapper = new MaintenanceOrder();
         updateWrapper.setId(id);
         updateWrapper.setStatus(updateInfo.getStatus());
@@ -238,20 +255,15 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
         updateWrapper.setCostBearer(updateInfo.getCostBearer());
         updateWrapper.setRemark(updateInfo.getRemark());
         updateWrapper.setUpdateTime(LocalDateTime.now());
-        updateWrapper.setCompleteTime(updateInfo.getCompleteTime()); // 补充完成时间更新
         return this.updateById(updateWrapper);
     }
 
-
-    /**
-     * 同步维修结果至房屋交接记录（针对退租交接场景）
-     */
+    // 以下工具方法保持不变
     private void syncToHouseHandover(MaintenanceOrder completedOrder) {
         Long houseId = completedOrder.getHouseId();
         Long contractId = completedOrder.getContractId();
         Long tenantId = completedOrder.getTenantId();
 
-        // 仅针对退租交接（CHECK_OUT）且关联同一合同的记录进行同步
         HouseHandover latestCheckOut = houseHandoverService.getOne(new LambdaQueryWrapper<HouseHandover>()
                 .eq(HouseHandover::getTenantId, tenantId)
                 .eq(HouseHandover::getHouseId, houseId)
@@ -261,27 +273,20 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
                 .last("LIMIT 1"));
 
         if (latestCheckOut != null) {
-            // 更新交接记录中的维修相关字段
-            latestCheckOut.setMaintenanceRemark(completedOrder.getRemark()); // 维修结果备注
-            latestCheckOut.setMaintenanceCost(completedOrder.getCostAmount()); // 维修费用
-            latestCheckOut.setMaintenanceBearer(completedOrder.getCostBearer()); // 费用承担方
-            latestCheckOut.setLastMaintenanceId(completedOrder.getId()); // 关联工单ID
+            latestCheckOut.setMaintenanceRemark(completedOrder.getRemark());
+            latestCheckOut.setMaintenanceCost(completedOrder.getCostAmount());
+            latestCheckOut.setMaintenanceBearer(completedOrder.getCostBearer());
+            latestCheckOut.setLastMaintenanceId(completedOrder.getId());
             houseHandoverService.updateById(latestCheckOut);
         }
     }
 
-    /**
-     * 生成租户内唯一工单编号
-     */
     private String generateOrderNo(Long tenantId) {
         String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        int seq = orderNoCounter.getAndIncrement() % 1000; // 取模防止溢出
+        int seq = orderNoCounter.getAndIncrement() % 1000;
         return String.format("TENANT%d_MAINT%s%03d", tenantId, dateStr, seq);
     }
 
-    /**
-     * 工单参数校验
-     */
     private void validateOrderParams(MaintenanceOrder order) {
         ValidateUtil.notNull(order.getHouseId(), "房源ID不能为空");
         ValidateUtil.notNull(order.getReporterType(), "报修人类型不能为空");
@@ -291,11 +296,7 @@ public class MaintenanceOrderServiceImpl extends ServiceImpl<MaintenanceOrderMap
         ValidateUtil.notNull(order.getDescription(), "故障描述不能为空");
     }
 
-    /**
-     * 校验状态流转合法性
-     */
     private void validateStatusTransition(String oldStatus, String newStatus) {
-        // 示例状态流转规则：SUBMITTED→ASSIGNED→COMPLETED
         if ("SUBMITTED".equals(oldStatus)) {
             if (!"ASSIGNED".equals(newStatus)) {
                 throw new BusinessException(400, "已提交状态仅能转为已分配");

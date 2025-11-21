@@ -3,7 +3,9 @@ package com.house.deed.pavilion.module.contract.service.impl;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.house.deed.pavilion.common.aspect.annotation.AgentDataPermission;
 import com.house.deed.pavilion.common.exception.BusinessException;
+import com.house.deed.pavilion.common.redis.RedisSequenceGenerator;
 import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.ContractValidationUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
@@ -16,7 +18,6 @@ import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.contract.vo.ContractDetailVO;
 import com.house.deed.pavilion.module.contractAttachment.entity.ContractAttachment;
 import com.house.deed.pavilion.module.contractAttachment.mapper.ContractAttachmentMapper;
-import com.house.deed.pavilion.module.contractAttachment.service.IContractAttachmentService;
 import com.house.deed.pavilion.module.contractLeaseTerms.entity.ContractLeaseTerms;
 import com.house.deed.pavilion.module.customer.entity.Customer;
 import com.house.deed.pavilion.module.customer.service.ICustomerService;
@@ -62,265 +63,257 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     @Resource
     private ICustomerService customerService;
     @Resource
-    private IVisitRecordService visitRecordService; // 带看记录服务
+    private IVisitRecordService visitRecordService;
     @Resource
-    private IAgentService agentService; // 经纪人服务
+    private IAgentService agentService;
     @Resource
-    private ContractValidationUtil contractValidationUtil; // 依赖领域服务
-
+    private ContractValidationUtil contractValidationUtil;
     @Resource
-    private ContractAttachmentMapper contractAttachmentMapper; // 注入附件服务
-
+    private ContractAttachmentMapper contractAttachmentMapper;
+    @Resource
+    private RedisSequenceGenerator redisSequenceGenerator;
     @Autowired
     @Lazy
     private IHouseHandoverService houseHandoverService;
 
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = Contract.class,
+            dataIdParam = "contractId",
+            creatorField = "agentId"
+    )
     public ContractDetailVO getDetailWithAttachments(Long contractId) {
-        Long tenantId = TenantContext.getTenantId();
-        // 1. 查询合同基本信息并校验权限
+        // 权限校验由注解自动完成，直接查询合同
         Contract contract = getById(contractId);
-        if (contract == null || !contract.getTenantId().equals(tenantId)) {
-            throw new BusinessException(404, "合同不存在或无权访问");
-        }
-        // 2. 转换为VO并查询附件
         ContractDetailVO vo = new ContractDetailVO();
         BeanUtils.copyProperties(contract, vo);
+
+        // 附件查询自动继承租户隔离（通过注解切面）
         List<ContractAttachment> attachments = contractAttachmentMapper.selectList(
                 new LambdaQueryWrapper<ContractAttachment>()
-                .eq(ContractAttachment::getContractId, contractId)
+                        .eq(ContractAttachment::getContractId, contractId)
         );
         vo.setAttachments(attachments);
         return vo;
     }
 
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = Contract.class,
+            creatorField = "agentId"
+    )
     public List<Contract> getByCustomerId(Long customerId, Long tenantId) {
+        // 租户隔离和权限过滤由注解自动处理
         return lambdaQuery()
                 .eq(Contract::getCustomerId, customerId)
-                .eq(Contract::getTenantId, tenantId)
                 .orderByDesc(Contract::getSignTime)
                 .list();
     }
 
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = Contract.class,
+            creatorField = "agentId"
+    )
     public List<Contract> getByHouseId(Long houseId) {
         ValidateUtil.notNull(houseId, "房源ID不能为空");
-        Long tenantId = TenantContext.getTenantId();
-        ValidateUtil.notNull(tenantId, "租户上下文获取失败");
         Long currentAgentId = AgentContext.getAgentId();
         ValidateUtil.notNull(currentAgentId, "经纪人上下文获取失败");
 
-        // 1. 校验房源是否为当前经纪人创建（核心权限控制）
+        // 房源权限校验（保留，与房源模块权限逻辑对齐）
         House house = houseService.getById(houseId);
-        if (house == null || !house.getTenantId().equals(tenantId)) {
-            throw new BusinessException(404, "房源不存在或不属于当前租户");
+        if (house == null) {
+            throw new BusinessException(404, "房源不存在");
         }
         if (!house.getCreateAgentId().equals(currentAgentId)) {
             throw new BusinessException(403, "无权访问该房源的合同：仅房源创建人可查看");
         }
 
-        // 2. 查询该房源且属于当前租户的合同
+        // 合同查询自动添加租户和权限过滤
         return baseMapper.selectList(new LambdaQueryWrapper<Contract>()
                 .eq(Contract::getHouseId, houseId)
-                .eq(Contract::getTenantId, tenantId));
+        );
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.DELETE,
+            entityClass = Contract.class,
+            dataIdParam = "contractId",
+            creatorField = "agentId"
+    )
     public boolean removeContract(Long contractId) {
-        Long tenantId = TenantContext.getTenantId();
-        if (tenantId == null) {
-            throw new BusinessException(400, "租户上下文获取失败");
-        }
+        // 权限校验由注解完成，直接获取合同
+        Contract contract = getById(contractId);
 
-        // 1. 校验合同存在性及租户归属
-        Contract contract = getByIdWithTenant(contractId);
-        if (contract == null) {
-            throw new BusinessException(404, "合同不存在或无权访问");
-        }
-
+        // 业务关联校验保留
         contractValidationUtil.validateNoDependenciesBeforeDelete(contractId);
         if ("RENT".equals(contract.getContractType())) {
-            ContractLeaseTerms terms = contractValidationUtil.validateContractLeaseTerms(contractId, tenantId);
+            ContractLeaseTerms terms = contractValidationUtil.validateContractLeaseTerms(contractId, contract.getTenantId());
             if (terms != null) {
                 throw new BusinessException(400, "租赁合同存在附加条款，无法删除");
             }
         }
 
-        // 3. 检查合同状态（终态合同不允许删除）
+        // 状态校验保留
         if ("COMPLETED".equals(contract.getStatus()) || "TERMINATED".equals(contract.getStatus())) {
             throw new BusinessException(400, "已完成或已终止的合同不允许删除");
         }
 
-        // 4. 删除合同
         return removeById(contractId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.UPDATE,
+            entityClass = Contract.class,
+            dataIdParam = "contract.id",
+            creatorField = "agentId"
+    )
     public boolean updateContract(Contract contract) {
-        Long tenantId = TenantContext.getTenantId();
-        if (tenantId == null) {
-            throw new BusinessException(400, "租户上下文获取失败");
-        }
         Long contractId = contract.getId();
-        if (contractId == null) {
-            throw new BusinessException(400, "合同ID不能为空");
-        }
+        ValidateUtil.notNull(contractId, "合同ID不能为空");
 
-        // 1. 校验合同存在性及租户归属
-        Contract existContract = getByIdWithTenant(contractId);
-        if (existContract == null) {
-            throw new BusinessException(404, "合同不存在或无权访问");
-        }
+        // 权限校验由注解完成，直接获取合同
+        Contract existContract = getById(contractId);
 
-        // 2. 禁止更新状态字段（状态更新通过专门接口）
+        // 状态更新限制保留
         if (contract.getStatus() != null) {
             throw new BusinessException(400, "不允许通过此接口更新合同状态，请使用状态更新接口");
         }
 
-        // 3. 填充不可修改字段（防止篡改）
-        contract.setTenantId(tenantId);
-        contract.setContractNo(existContract.getContractNo()); // 合同编号不可修改
+        // 不可修改字段保护
+        contract.setTenantId(existContract.getTenantId());
+        contract.setContractNo(existContract.getContractNo());
         contract.setUpdateTime(LocalDateTime.now());
 
-        // 4. 更新非状态字段
         return updateById(contract);
     }
 
     @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = Contract.class,
+            dataIdParam = "contractId",
+            creatorField = "agentId"
+    )
     public Contract getByIdWithTenant(Long contractId) {
-        Long tenantId = TenantContext.getTenantId();
-        if (tenantId == null) {
-            throw new BusinessException(400, "租户上下文获取失败");
-        }
-        // 仅查询当前租户的合同
-        return baseMapper.selectOne(new LambdaQueryWrapper<Contract>()
-                .eq(Contract::getId, contractId)
-                .eq(Contract::getTenantId, tenantId));
+        // 权限和租户过滤由注解自动处理
+        return getById(contractId);
     }
 
-    /**
-     * 创建合同（包含房源/客户校验、合同编号生成、linkVisitRecords）
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.CREATE,
+            entityClass = Contract.class,
+            creatorField = "agentId"
+    )
     public boolean createContract(Contract contract) {
         Long tenantId = TenantContext.getTenantId();
-        if (tenantId == null) {
-            throw new BusinessException(400, "租户上下文获取失败");
-        }
+        ValidateUtil.notNull(tenantId, "租户上下文获取失败");
 
-        // 1. 校验房源合法性（存在且归属当前租户）
+        // 房源合法性校验保留
         House house = houseService.getById(contract.getHouseId());
         if (house == null || !house.getTenantId().equals(tenantId)) {
             throw new BusinessException(404, "房源不存在或不属于当前租户");
         }
 
-        // 2. 校验客户合法性（存在且归属当前租户）
+        // 客户合法性校验保留
         Customer customer = customerService.getById(contract.getCustomerId());
         if (customer == null || !customer.getTenantId().equals(tenantId)) {
             throw new BusinessException(404, "客户不存在或不属于当前租户");
         }
 
-        // 3. 生成租户内唯一合同编号（优化：增加自增序列减少重复风险）
+        // 合同编号生成
         String contractNo = generateContractNo(tenantId);
         contract.setContractNo(contractNo);
-        contract.setTenantId(tenantId); // 确保租户ID正确设置
+        contract.setTenantId(tenantId);
         contract.setCreateTime(LocalDateTime.now());
         contract.setUpdateTime(LocalDateTime.now());
+        contract.setAgentId(AgentContext.getAgentId()); // 创建者自动绑定当前经纪人
 
-        // 4. 保存合同
         boolean saveSuccess = save(contract);
         if (!saveSuccess) {
             log.error("合同创建失败，合同信息：{}", contract);
             throw new BusinessException(500, "合同创建失败");
         }
 
-        // 5. 关联最近一次带看记录（客户+房源维度）
         linkVisitRecords(contract, tenantId);
-
         return true;
     }
 
-    /**
-     * 合同状态流转（包含房源状态自动更新、带看记录关联）
-     */
-    // ContractServiceImpl.java
     @Transactional(rollbackFor = Exception.class)
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.UPDATE,
+            entityClass = Contract.class,
+            dataIdParam = "contractId",
+            creatorField = "agentId"
+    )
     public boolean updateContractStatus(Long contractId, String targetStatus) {
-        // 1. 校验合同存在性（已有逻辑）
+        // 权限校验由注解完成，直接获取合同
         Contract contract = getById(contractId);
-        if (contract == null) {
-            throw new BusinessException(404, "合同不存在");
-        }
 
-        // 2. 校验状态流转合法性（已有逻辑）
+        // 状态流转校验保留
         validateStatusTransition(contract.getStatus(), targetStatus);
 
-        // 3. 签约状态特殊处理（已有逻辑）
+        // 签约状态处理
         if ("SIGNED".equals(targetStatus) && !"SIGNED".equals(contract.getStatus())) {
             updateHouseStatusAfterSign(contract);
             linkVisitRecords(contract, contract.getTenantId());
         }
 
-        // 4. 新增：租赁合同终止/完成前校验退租记录
+        // 退租记录校验
         if (("TERMINATED".equals(targetStatus) || "COMPLETED".equals(targetStatus))
                 && "RENT".equals(contract.getContractType())) {
 
-            // 调用getLatestCheckOutByHouseAndContract查询最新退租记录
             HouseHandover latestCheckOut = houseHandoverService
                     .getLatestCheckOutByHouseAndContract(contract.getHouseId(), contractId);
 
             if (latestCheckOut == null) {
                 throw new BusinessException(400, "未查询到退租交接记录，无法终止/完成合同");
             }
-            // 可选：若退租记录有状态字段，需校验是否已完成（如状态为"CONFIRMED"）
-             if (!"CONFIRMED".equals(latestCheckOut.getStatus())) {
-                 throw new BusinessException(400, "退租交接未确认，无法终止/完成合同");
-             }
+            if (!"CONFIRMED".equals(latestCheckOut.getStatus())) {
+                throw new BusinessException(400, "退租交接未确认，无法终止/完成合同");
+            }
         }
-        // 2. 新增：合同终止且为租赁合同，生成退租交接草稿
+
+        // 生成退租草稿
         if ("TERMINATED".equals(targetStatus) && "RENT".equals(contract.getContractType())) {
             generateCheckoutHandoverDraft(contract);
         }
 
-        // 5. 更新合同状态（已有逻辑）
+        // 更新状态
         contract.setStatus(targetStatus);
         contract.setUpdateTime(LocalDateTime.now());
         return updateById(contract);
     }
 
-    /**
-     * 生成退租交接记录草稿
-     */
+    // 以下为原有工具方法，保持不变
     private void generateCheckoutHandoverDraft(Contract contract) {
         HouseHandoverDTO draft = new HouseHandoverDTO();
         draft.setContractId(contract.getId());
         draft.setHouseId(contract.getHouseId());
-        draft.setHandoverType("CHECK_OUT"); // 退租类型
-        draft.setStatus("DRAFT"); // 标记为草稿
-        draft.setHandoverTime(LocalDateTime.now()); // 默认为当前时间，可后续修改
-
-        // 调用交接服务创建草稿（需调整createHandover支持草稿逻辑）
+        draft.setHandoverType("CHECK_OUT");
+        draft.setStatus("DRAFT");
+        draft.setHandoverTime(LocalDateTime.now());
         houseHandoverService.createHandover(draft);
     }
 
-    /**
-     * 合同签约后更新房源状态并记录日志
-     */
     private void updateHouseStatusAfterSign(Contract contract) {
         Long houseId = contract.getHouseId();
         Long tenantId = contract.getTenantId();
 
-        // 1. 再次校验房源归属（防并发问题）
         House house = houseService.getById(houseId);
         if (house == null || !house.getTenantId().equals(tenantId)) {
             throw new BusinessException(404, "房源不存在或不属于当前租户");
         }
 
-        // 2. 确定目标状态（基于合同类型）
         HouseStatus targetHouseStatus;
         String changeReason;
         if ("SALE".equals(contract.getContractType())) {
@@ -333,13 +326,11 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
             throw new BusinessException(400, "不支持的合同类型：" + contract.getContractType());
         }
 
-        // 3. 避免重复更新
         if (targetHouseStatus.equals(house.getStatus())) {
             log.info("房源ID={}已处于{}状态，无需更新", houseId, targetHouseStatus);
             return;
         }
 
-        // 4. 更新房源状态
         HouseStatus oldStatus = house.getStatus();
         house.setStatus(targetHouseStatus);
         house.setUpdateTime(LocalDateTime.now());
@@ -348,7 +339,6 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
             throw new BusinessException(500, "更新房源状态失败，房源ID：" + houseId);
         }
 
-        // 5. 记录状态变更日志
         HouseStatusLog statusLog = new HouseStatusLog();
         statusLog.setTenantId(tenantId);
         statusLog.setHouseId(houseId);
@@ -361,9 +351,6 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         houseStatusLogService.save(statusLog);
     }
 
-    /**
-     * 关联客户-房源的最近一次带看记录
-     */
     private void linkVisitRecords(Contract contract, Long tenantId) {
         VisitRecord latestVisit = visitRecordService.getOne(
                 new LambdaQueryWrapper<VisitRecord>()
@@ -381,15 +368,12 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         }
     }
 
-    /**
-     * 校验状态流转合法性（补充初始状态支持）
-     */
     private void validateStatusTransition(String currentStatus, String targetStatus) {
         List<String> validTransitions = switch (currentStatus) {
-            case "DRAFT" -> List.of("SIGNED", "TERMINATED"); // 草稿可签约或终止
-            case "SIGNED" -> List.of("EXECUTING", "TERMINATED"); // 已签约可执行或终止
-            case "EXECUTING" -> List.of("COMPLETED", "TERMINATED"); // 执行中可完成或终止
-            case "COMPLETED", "TERMINATED" -> List.of(); // 终态不可流转
+            case "DRAFT" -> List.of("SIGNED", "TERMINATED");
+            case "SIGNED" -> List.of("EXECUTING", "TERMINATED");
+            case "EXECUTING" -> List.of("COMPLETED", "TERMINATED");
+            case "COMPLETED", "TERMINATED" -> List.of();
             default -> List.of();
         };
 
@@ -399,19 +383,13 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         }
     }
 
-    /**
-     * 生成租户内唯一合同编号（优化：日期+自增序号减少重复）
-     */
     private String generateContractNo(Long tenantId) {
-        // 实际生产环境建议使用数据库自增序列或Redis生成序号
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String seq = String.format("%03d", RandomUtil.randomInt(1, 999));
-        return String.format("T%d_CONTRACT%s%s", tenantId, dateStr, seq);
+        int seq = redisSequenceGenerator.getDailySequence("contract", tenantId);
+        String seqStr = String.format("%03d", seq);
+        return String.format("T%d_CONTRACT%s%s", tenantId, dateStr, seqStr);
     }
 
-    /**
-     * 获取经纪人姓名
-     */
     private String getAgentName(Long agentId) {
         if (agentId == null) {
             return "未知";
