@@ -6,10 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.aspect.annotation.AgentDataPermission;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.redis.RedisSequenceGenerator;
-import com.house.deed.pavilion.common.util.AgentContext;
-import com.house.deed.pavilion.common.util.ContractValidationUtil;
-import com.house.deed.pavilion.common.util.TenantContext;
-import com.house.deed.pavilion.common.util.ValidateUtil;
+import com.house.deed.pavilion.common.util.*;
 import com.house.deed.pavilion.module.agent.entity.Agent;
 import com.house.deed.pavilion.module.agent.service.IAgentService;
 import com.house.deed.pavilion.module.contract.entity.Contract;
@@ -150,7 +147,12 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         // 权限校验由注解完成，直接获取合同
         Contract contract = getById(contractId);
 
-        // 业务关联校验保留
+        // 新增：角色权限校验（仅管理员/店长可删除）
+        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()) {
+            throw new BusinessException(403, "无权删除合同：仅管理员或店长可操作");
+        }
+
+        // 原有业务校验保留
         contractValidationUtil.validateNoDependenciesBeforeDelete(contractId);
         if ("RENT".equals(contract.getContractType())) {
             ContractLeaseTerms terms = contractValidationUtil.validateContractLeaseTerms(contractId, contract.getTenantId());
@@ -159,7 +161,7 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
             }
         }
 
-        // 状态校验保留
+        // 原有状态校验保留
         if ("COMPLETED".equals(contract.getStatus()) || "TERMINATED".equals(contract.getStatus())) {
             throw new BusinessException(400, "已完成或已终止的合同不允许删除");
         }
@@ -248,6 +250,7 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         return true;
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     @AgentDataPermission(
             operation = AgentDataPermission.OperationType.UPDATE,
@@ -262,13 +265,20 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
         // 状态流转校验保留
         validateStatusTransition(contract.getStatus(), targetStatus);
 
-        // 签约状态处理
+        // 新增：若目标状态为终止（TERMINATED），校验角色权限
+        if ("TERMINATED".equals(targetStatus)) {
+            if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()) {
+                throw new BusinessException(403, "无权终止合同：仅管理员或店长可操作");
+            }
+        }
+
+        // 原有签约状态处理保留
         if ("SIGNED".equals(targetStatus) && !"SIGNED".equals(contract.getStatus())) {
             updateHouseStatusAfterSign(contract);
             linkVisitRecords(contract, contract.getTenantId());
         }
 
-        // 退租记录校验
+        // 原有退租记录校验保留
         if (("TERMINATED".equals(targetStatus) || "COMPLETED".equals(targetStatus))
                 && "RENT".equals(contract.getContractType())) {
 
@@ -283,7 +293,7 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
             }
         }
 
-        // 生成退租草稿
+        // 原有生成退租草稿逻辑保留
         if ("TERMINATED".equals(targetStatus) && "RENT".equals(contract.getContractType())) {
             generateCheckoutHandoverDraft(contract);
         }

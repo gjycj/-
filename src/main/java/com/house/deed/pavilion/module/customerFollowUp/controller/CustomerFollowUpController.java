@@ -53,6 +53,16 @@ public class CustomerFollowUpController {
     @Resource
     private IAgentService agentService;
 
+    // CustomerFollowUpController.java
+    @PutMapping("/{id}")
+    public ResultDTO<Boolean> updateFollowUp(@PathVariable Long id, @RequestBody CustomerFollowUp followUp) {
+        if (!id.equals(followUp.getId())) {
+            throw new BusinessException(400, "ID不匹配");
+        }
+        boolean success = customerFollowUpService.updateFollowUp(followUp);
+        return ResultDTO.success(success);
+    }
+
     // 新增：通过合同ID查询带看记录
     @GetMapping("/by-contract")
     public ResultDTO<List<CustomerFollowUp>> getByContractId(@RequestParam Long contractId) {
@@ -209,22 +219,6 @@ public class CustomerFollowUpController {
         return ResultDTO.success(resultPage);
     }
 
-    // 4. 更新跟进记录
-    @PutMapping("/{id}")
-    public ResultDTO<Boolean> updateFollowUp(@PathVariable Long id, @RequestBody CustomerFollowUp followUp) {
-        if (!id.equals(followUp.getId())) {
-            throw new BusinessException(400, "ID不匹配");
-        }
-        // 校验数据归属
-        CustomerFollowUp existing = customerFollowUpService.getById(id);
-        if (existing == null || !existing.getTenantId().equals(TenantContext.getTenantId())) {
-            throw new BusinessException(404, "跟进记录不存在或无权访问");
-        }
-        // 禁止修改租户ID
-        followUp.setTenantId(existing.getTenantId());
-        boolean updated = customerFollowUpService.updateById(followUp);
-        return ResultDTO.success(updated);
-    }
 
     // 5. 删除跟进记录
     @DeleteMapping("/{id}")

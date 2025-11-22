@@ -22,4 +22,6 @@ public interface ICustomerFollowUpService extends IService<CustomerFollowUp> {
 
     // 分页查询客户的跟进记录（已声明）
     Page<CustomerFollowUp> getByCustomerId(Page<CustomerFollowUp> page, Long customerId, Long tenantId);
+
+    boolean updateFollowUp(CustomerFollowUp followUp);
 }

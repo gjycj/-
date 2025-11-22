@@ -23,5 +23,15 @@ public interface CustomerFollowUpMapper extends BaseMapper<CustomerFollowUp> {
     @Select("SELECT MAX(follow_time) FROM customer_follow_up WHERE customer_id = #{customerId} AND tenant_id = #{tenantId}")
     LocalDateTime selectLastFollowTime(@Param("customerId") Long customerId, @Param("tenantId") Long tenantId);
 
+    /**
+     * 查询客户上一次跟进时间（排除当前记录）
+     */
+    @Select("SELECT MAX(follow_time) FROM customer_follow_up " +
+            "WHERE customer_id = #{customerId} AND tenant_id = #{tenantId} " +
+            "AND id != #{excludeId}")
+    LocalDateTime selectLastFollowTimeExcludeCurrent(
+            @Param("customerId") Long customerId,
+            @Param("tenantId") Long tenantId,
+            @Param("excludeId") Long excludeId);
 
 }
