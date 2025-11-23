@@ -24,6 +24,24 @@ import java.util.List;
 public class VisitRecordServiceImpl extends ServiceImpl<VisitRecordMapper, VisitRecord> implements IVisitRecordService {
 
     /**
+     * 批量查询带看记录（按ID列表）
+     * 权限逻辑：仅能查询自己创建的带看记录（管理员/店长无限制）
+     */
+    @Override
+    @AgentDataPermission(
+            operation = AgentDataPermission.OperationType.QUERY,
+            entityClass = VisitRecord.class,
+            creatorField = "agentId" // 带看记录的创建人字段为agent_id
+    )
+    public List<VisitRecord> getBatchByIds(List<Long> ids) {
+        Long tenantId = TenantContext.getTenantId();
+        return baseMapper.selectList(new LambdaQueryWrapper<VisitRecord>()
+                .eq(VisitRecord::getTenantId, tenantId)
+                .in(VisitRecord::getId, ids)
+        );
+    }
+
+    /**
      * 按客户ID查询带看记录
      * 权限逻辑：自动过滤当前经纪人创建的记录（管理员/店长无限制）
      */

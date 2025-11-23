@@ -9,6 +9,7 @@ import com.house.deed.pavilion.common.util.RoleUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.agent.entity.Agent;
 import com.house.deed.pavilion.module.agent.service.IAgentService;
+import com.house.deed.pavilion.module.agentPerformance.service.IAgentPerformanceService;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.impl.ContractServiceImpl;
 import com.house.deed.pavilion.module.customer.entity.Customer;
@@ -19,6 +20,8 @@ import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
 import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -52,6 +55,22 @@ public class VisitRecordController {
 
     @Resource
     private IAgentService agentService;
+
+    @Autowired
+    @Lazy
+    private IAgentPerformanceService agentPerformanceService;
+
+    /**
+     * 批量查询带看记录（按ID列表）
+     */
+    @PostMapping("/batch/ids")
+    public ResultDTO<List<VisitRecord>> getBatchByIds(@RequestBody List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException(400, "ID列表不能为空");
+        }
+        List<VisitRecord> records = visitRecordService.getBatchByIds(ids);
+        return ResultDTO.success(records);
+    }
 
     // 新增：删除带看记录接口
     @DeleteMapping("/{id}")
@@ -206,6 +225,8 @@ public class VisitRecordController {
             log.error("带看记录保存失败：{}", record);
             throw new BusinessException(500, "带看记录创建失败");
         }
+        // 新增：带看记录创建后，触发基础业绩计算
+        agentPerformanceService.createBasePerformanceFromVisit(record);
         return ResultDTO.success(true);
     }
 

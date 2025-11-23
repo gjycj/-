@@ -91,7 +91,8 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
     @Resource
     private ITagService tagService;
 
-    @Resource
+    @Autowired
+    @Lazy
     private IHouseTagService houseTagService;
 
     @Resource
@@ -538,7 +539,6 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
 
         // 2. 查询原房源信息
         House house = getById(id);
-        Long tenantId = TenantContext.getTenantId();
 
         // 3. 复制房源信息到备份表（逻辑不变）
         HouseBackup backup = new HouseBackup();

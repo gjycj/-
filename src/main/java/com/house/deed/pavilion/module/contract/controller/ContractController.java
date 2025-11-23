@@ -4,12 +4,12 @@ import com.house.deed.pavilion.common.dto.ResultDTO;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.AgentContext;
 import com.house.deed.pavilion.common.util.TenantContext;
+import com.house.deed.pavilion.module.agentPerformance.service.IAgentPerformanceService;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.IContractService;
 import com.house.deed.pavilion.module.contract.vo.ContractDetailVO;
 import com.house.deed.pavilion.module.customerFollowUp.entity.CustomerFollowUp;
 import com.house.deed.pavilion.module.customerFollowUp.service.ICustomerFollowUpService;
-import com.house.deed.pavilion.module.house.service.IHouseService;
 import com.house.deed.pavilion.module.houseHandover.entity.HouseHandover;
 import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverService;
 import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
@@ -18,10 +18,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -29,6 +31,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/module/contract")
+@Slf4j
 public class ContractController {
 
     @Resource
@@ -43,6 +46,10 @@ public class ContractController {
 
     @Resource
     private IVisitRecordService visitRecordService;
+
+    @Autowired
+    @Lazy
+    private IAgentPerformanceService agentPerformanceService;
 
     @GetMapping("/detail/{id}")
     @Operation(summary = "查询合同详情（含关联附件）")
@@ -135,21 +142,48 @@ public class ContractController {
     }
 
     /**
-     * 更新合同状态
+     * 更新合同状态为签约
      */
     @PatchMapping("/{id}/status")
-    public ResultDTO<Boolean> updateContractStatus(
-            @PathVariable Long id,
-            @RequestParam String targetStatus) {
-
-        // 校验状态参数合法性
-        List<String> validStatus = List.of("SIGNED", "EXECUTING", "COMPLETED", "TERMINATED");
-        if (!validStatus.contains(targetStatus)) {
-            throw new BusinessException(400, "状态只能是SIGNED/EXECUTING/COMPLETED/TERMINATED");
+    public ResultDTO<Boolean> signContract(@PathVariable Long id) {
+        // 1. 查询合同并校验状态
+        Contract contract = contractService.getById(id);
+        if (contract == null) {
+            throw new BusinessException(404, "合同不存在");
+        }
+        if ("SIGNED".equals(contract.getStatus())) {
+            throw new BusinessException(400, "合同已签约");
         }
 
-        boolean success = contractService.updateContractStatus(id, targetStatus);
-        return ResultDTO.success(success);
+        // 2. 更新合同状态为签约
+        contract.setStatus("SIGNED");
+        boolean updated = contractService.updateById(contract);
+        if (!updated) {
+            throw new BusinessException(500, "合同状态更新失败");
+        }
+
+        // 3. 查询该合同关联的带看记录（取最新一条有效带看）
+        List<VisitRecord> visitRecords = visitRecordService.getByContractId(id, contract.getTenantId());
+        if (visitRecords.isEmpty()) {
+            log.warn("合同{}签约但未找到关联带看记录，不生成业绩", id);
+            return ResultDTO.success(true);
+        }
+        VisitRecord latestVisit = visitRecords.get(0); // 假设按时间排序取最新
+
+        // 4. 生成业绩（使用合同实际金额计算）
+        // 假设合同金额字段为dealAmount（万元），佣金比例为1%
+        BigDecimal dealAmount = contract.getAmount(); // 从合同中获取成交金额
+        BigDecimal commissionAmount = dealAmount.multiply(new BigDecimal("10000")) // 转换为元
+                .multiply(new BigDecimal("0.01")); // 1%佣金比例
+
+        agentPerformanceService.createPerformanceFromVisit(
+                latestVisit,
+                id, // 合同ID
+                dealAmount, // 成交金额（万元）
+                commissionAmount // 佣金金额（元）
+        );
+
+        return ResultDTO.success(true);
     }
 
     // 新增：查询合同关联的带看记录（包含VisitRecord和CustomerFollowUp）

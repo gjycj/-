@@ -24,4 +24,9 @@ public interface ICustomerFollowUpService extends IService<CustomerFollowUp> {
     Page<CustomerFollowUp> getByCustomerId(Page<CustomerFollowUp> page, Long customerId, Long tenantId);
 
     boolean updateFollowUp(CustomerFollowUp followUp);
+
+
+    boolean deleteFollowUp(Long id);
+
+    CustomerFollowUp getByIdWithPermission(Long id);
 }

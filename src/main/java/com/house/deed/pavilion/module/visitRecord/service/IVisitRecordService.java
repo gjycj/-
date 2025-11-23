@@ -27,4 +27,10 @@ public interface IVisitRecordService extends IService<VisitRecord> {
 
     List<VisitRecord> getByCustomerId(Long customerId);
 
+    /**
+     * 批量查询带看记录（按ID列表）
+     * @param ids 带看记录ID列表
+     * @return 带看记录列表
+     */
+    List<VisitRecord> getBatchByIds(List<Long> ids);
 }

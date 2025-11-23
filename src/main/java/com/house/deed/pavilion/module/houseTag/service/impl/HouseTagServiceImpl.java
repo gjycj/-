@@ -30,6 +30,8 @@ import java.util.List;
  */
 @Service
 public class HouseTagServiceImpl extends ServiceImpl<HouseTagMapper, HouseTag> implements IHouseTagService {
+
+
     @Resource
     private IHouseService houseService;
 
