@@ -1,53 +1,35 @@
 package com.house.deed.pavilion.module.houseTag.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.*;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * <p>
- * 房源与标签关联表（租户级数据）
- * </p>
- *
- * @author yuquanxi
- * @since 2025-11-07
- */
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @TableName("house_tag")
-public class HouseTag implements Serializable {
+@Schema(description = "房源-标签关联表")
+public class HouseTag {
 
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * 关联ID
-     */
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(type = IdType.AUTO)
+    @Schema(description = "关联ID", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
-    /**
-     * 租户ID（归属租户）
-     */
-    @TableField("tenant_id")
+    @TableField(value = "tenant_id", fill = FieldFill.INSERT)
+    @Schema(description = "租户ID（归属租户）", accessMode = Schema.AccessMode.READ_ONLY)
     private Long tenantId;
 
-    /**
-     * 房源ID（关联house表，同租户）
-     */
     @TableField("house_id")
+    @Schema(description = "房源ID", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long houseId;
 
-    /**
-     * 标签ID（关联tag表，同租户）
-     */
     @TableField("tag_id")
+    @Schema(description = "标签ID", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long tagId;
 
-    @TableField("create_time")
+    @TableField(value = "create_time", fill = FieldFill.INSERT)
+    @Schema(description = "创建时间", accessMode = Schema.AccessMode.READ_ONLY)
     private LocalDateTime createTime;
 }

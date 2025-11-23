@@ -1,81 +1,54 @@
 package com.house.deed.pavilion.module.housePriceLog.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import java.io.Serializable;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * <p>
- * 房源价格变动记录表（租户级数据）
- * </p>
- *
- * @author yuquanxi
- * @since 2025-11-07
- */
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @TableName("house_price_log")
-public class HousePriceLog implements Serializable {
+@Schema(description = "房源价格变动记录表（租户级数据）")
+public class HousePriceLog {
 
-    private static final long serialVersionUID = 1L;
-
-    /**
-     * 日志ID
-     */
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(type = IdType.AUTO)
+    @Schema(description = "日志ID", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
-    /**
-     * 租户ID（归属租户）
-     */
-    @TableField("tenant_id")
+    @TableField(value = "tenant_id", fill = FieldFill.INSERT)
+    @Schema(description = "租户ID（归属租户）", accessMode = Schema.AccessMode.READ_ONLY)
     private Long tenantId;
 
-    /**
-     * 房源ID（关联house表，同租户）
-     */
     @TableField("house_id")
+    @Schema(description = "房源ID", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long houseId;
 
-    /**
-     * 调整前价格
-     */
     @TableField("price_before")
+    @Schema(description = "调整前价格", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal priceBefore;
 
-    /**
-     * 调整后价格
-     */
     @TableField("price_after")
+    @Schema(description = "调整后价格", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal priceAfter;
 
-    /**
-     * 调价原因（房东要求/市场行情/促销等）
-     */
     @TableField("change_reason")
+    @Schema(description = "调价原因", requiredMode = Schema.RequiredMode.REQUIRED)
     private String changeReason;
 
-    /**
-     * 操作人ID（经纪人，同租户）
-     */
     @TableField("operator_id")
+    @Schema(description = "操作人ID（经纪人）", accessMode = Schema.AccessMode.READ_ONLY)
     private Long operatorId;
 
-    /**
-     * 操作人姓名
-     */
     @TableField("operator_name")
+    @Schema(description = "操作人姓名", accessMode = Schema.AccessMode.READ_ONLY)
     private String operatorName;
 
-    /**
-     * 调价时间
-     */
-    @TableField("create_time")
+    @TableField(value = "create_time", fill = FieldFill.INSERT)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "调价时间", accessMode = Schema.AccessMode.READ_ONLY)
     private LocalDateTime createTime;
 }
