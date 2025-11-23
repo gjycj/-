@@ -17,6 +17,28 @@ public class ValidateUtil {
     private static final Pattern CERT_NO_PATTERN = Pattern.compile("^[A-Za-z0-9]{15}|[A-Za-z0-9]{18}$");
 
     /**
+     * 条件校验（验证表达式是否为true）
+     * @param expression 待验证的条件表达式
+     * @param message 异常提示
+     */
+    public static void isTrue(boolean expression, String message) {
+        if (!expression) {
+            throw new BusinessException(400, message);
+        }
+    }
+
+    /**
+     * 非空白校验（字符串不能为null且不能是空白字符）
+     * @param str 待校验字符串
+     * @param message 异常提示
+     */
+    public static void notBlank(String str, String message) {
+        if (StringUtils.isBlank(str)) {
+            throw new BusinessException(400, message);
+        }
+    }
+
+    /**
      * 非空校验
      * @param obj 待校验对象
      * @param message 异常提示

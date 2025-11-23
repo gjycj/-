@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.house.deed.pavilion.common.aspect.annotation.AgentDataPermission;
 import com.house.deed.pavilion.common.exception.BusinessException;
 import com.house.deed.pavilion.common.util.ContractValidationUtil;
+import com.house.deed.pavilion.common.util.RoleUtil;
 import com.house.deed.pavilion.common.util.TenantContext;
 import com.house.deed.pavilion.module.contract.entity.Contract;
 import com.house.deed.pavilion.module.contract.service.IContractService;
@@ -38,6 +39,40 @@ public class ElectronicSignServiceImpl extends ServiceImpl<ElectronicSignMapper,
     private IContractService contractService;
     @Resource
     private ContractValidationUtil contractValidationUtil; // 复用合同校验工具类
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean invalidSign(Long signId) {
+        // 1. 权限校验：仅管理员可操作
+        if (!RoleUtil.isAdmin()) {
+            throw new BusinessException(403, "无权作废电子签：仅管理员可操作");
+        }
+
+        // 2. 校验电子签记录存在性及租户归属
+        Long tenantId = TenantContext.getTenantId();
+        ElectronicSign electronicSign = this.getById(signId);
+        if (electronicSign == null) {
+            throw new BusinessException(404, "电子签记录不存在");
+        }
+        if (!electronicSign.getTenantId().equals(tenantId)) {
+            throw new BusinessException(403, "无权操作其他租户的电子签记录");
+        }
+
+        // 3. 状态校验：已作废状态不允许重复作废
+        if ("INVALID".equals(electronicSign.getSignStatus())) {
+            throw new BusinessException(400, "该电子签已处于作废状态");
+        }
+
+        // 4. 特殊状态校验：已完成的电子签不允许作废（根据业务需求调整）
+        if ("COMPLETED".equals(electronicSign.getSignStatus())) {
+            throw new BusinessException(400, "已完成的电子签不允许作废");
+        }
+
+        // 5. 更新状态为作废
+        electronicSign.setSignStatus("INVALID");
+        electronicSign.setUpdateTime(LocalDateTime.now());
+        return this.updateById(electronicSign);
+    }
 
     /**
      * 创建电子签：关联合同创建人权限，仅合同创建人/管理员可操作
@@ -83,48 +118,54 @@ public class ElectronicSignServiceImpl extends ServiceImpl<ElectronicSignMapper,
         return electronicSign;
     }
 
-    /**
-     * 更新签约状态：支持第三方回调，同步更新合同状态
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String updateSignStatus(Long signId, boolean customerSign, boolean landlordSign) {
+    public String updateSignStatus(Long signId, boolean customerSign, boolean landlordSign,
+                                   LocalDateTime customerSignTime, LocalDateTime landlordSignTime) {
         Long tenantId = TenantContext.getTenantId();
-        // 1. 校验电子签记录存在性及租户归属
-        ElectronicSign electronicSign = getById(signId);
+
+        // 1. 校验电子签记录存在性及租户归属（原有逻辑保留）
+        ElectronicSign electronicSign = this.getById(signId);
         if (electronicSign == null || !electronicSign.getTenantId().equals(tenantId)) {
-            throw new BusinessException(404, "电子签记录不存在或无权访问");
+            throw new BusinessException(404, "电子签记录不存在或不属于当前租户");
         }
-        // 2. 校验当前状态是否允许更新（已签/过期状态不允许再更新）
+
+        // 2. 校验当前状态是否允许更新（已完成/过期/拒签状态不允许再更新）
         String currentStatus = electronicSign.getSignStatus();
-        if ("SIGNED".equals(currentStatus) || "EXPIRED".equals(currentStatus) || "REJECTED".equals(currentStatus)) {
+        if ("COMPLETED".equals(currentStatus) || "EXPIRED".equals(currentStatus) || "REJECTED".equals(currentStatus)) {
             throw new BusinessException(400, "当前状态不允许更新（状态：" + currentStatus + "）");
         }
 
-        // 3. 更新签署时间
-        LocalDateTime now = LocalDateTime.now();
+        // 2. 核心补充：记录客户签名时间（仅首次签名时记录）
         if (customerSign && electronicSign.getCustomerSignTime() == null) {
-            electronicSign.setCustomerSignTime(now);
-        }
-        if (landlordSign && electronicSign.getLandlordSignTime() == null) {
-            electronicSign.setLandlordSignTime(now);
+            // 优先使用第三方提供的时间，无则用系统当前时间
+            electronicSign.setCustomerSignTime(
+                    customerSignTime != null ? customerSignTime : LocalDateTime.now()
+            );
         }
 
-        // 4. 确定新状态
+        // 3. 核心补充：记录房东签名时间（仅首次签名时记录）
+        if (landlordSign && electronicSign.getLandlordSignTime() == null) {
+            electronicSign.setLandlordSignTime(
+                    landlordSignTime != null ? landlordSignTime : LocalDateTime.now()
+            );
+        }
+
+        // 4. 状态更新（原有逻辑保留，与签名时间联动）
         String newStatus = currentStatus;
         if (customerSign && landlordSign) {
-            newStatus = "SIGNED"; // 双方已签
-            // 生成防篡改哈希（实际需基于PDF内容生成）
-            electronicSign.setSignHash(generateSignHash(electronicSign.getContractPdfUrl()));
-            // 联动更新合同状态为"已签约"
-            contractService.updateContractStatus(electronicSign.getContractId(), "SIGNED");
-        } else if ("REJECTED".equals(currentStatus)) {
-            newStatus = "REJECTED"; // 若已拒签，保持状态
+            newStatus = "SIGNED"; // 与仓库中合同状态保持一致（原计划2.3用SIGNED触发合同更新）
+            electronicSign.setSignStatus(newStatus);
+        } else if (customerSign || landlordSign) {
+            newStatus = "PARTIALLY_SIGNED"; // 部分签署（新增中间状态，便于监控）
+            electronicSign.setSignStatus(newStatus);
+        } else {
+            newStatus = electronicSign.getSignStatus(); // 无变化，保持原状态
         }
 
-        electronicSign.setSignStatus(newStatus);
-        electronicSign.setUpdateTime(now);
-        updateById(electronicSign);
+        // 5. 更新时间戳（原有逻辑保留）
+        electronicSign.setUpdateTime(LocalDateTime.now());
+        this.updateById(electronicSign);
 
         return newStatus;
     }

@@ -71,7 +71,6 @@ public class ContractLeaseTermsServiceImpl extends ServiceImpl<ContractLeaseTerm
         );
     }
 
-    // 删除：仅合同创建人或管理员可操作
     @Override
     @Transactional(rollbackFor = Exception.class)
     @AgentDataPermission(
@@ -82,17 +81,37 @@ public class ContractLeaseTermsServiceImpl extends ServiceImpl<ContractLeaseTerm
     )
     public boolean removeByContractId(Long contractId) {
         Long tenantId = TenantContext.getTenantId();
-        // 校验合同存在性
-        contractValidationUtil.validateContract(contractId, tenantId);
-        // 校验角色权限（管理员/店长可强制删除）
-        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()) {
-            throw new BusinessException(403, "无权删除：仅合同创建人、管理员或店长可操作");
+        // 1. 校验合同存在性及租户归属
+        Contract contract = contractValidationUtil.validateContract(contractId, tenantId);
+
+        // 2. 校验合同类型（仅租赁合同可操作）
+        if (!"RENT".equals(contract.getContractType())) {
+            throw new BusinessException(400, "仅租赁合同的附加条款可删除");
         }
-        // 执行删除
-        return baseMapper.delete(new LambdaQueryWrapper<ContractLeaseTerms>()
+
+        // 3. 新增：校验前校验合同状态，已终止合同不允许删除条款
+        if ("TERMINATED".equals(contract.getStatus())) {
+            throw new BusinessException(400, "已终止的合同不允许删除附加条款");
+        }
+
+        // 4. 校验权限校验（仅管理员/店长可操作）
+        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()) {
+            throw new BusinessException(403, "无权删除：仅管理员或店长可操作");
+        }
+
+        // 5. 校验条款存在性校验
+        ContractLeaseTerms terms = getByContractId(contractId);
+        if (terms == null) {
+            throw new BusinessException(404, "该合同无附加条款，无需删除");
+        }
+
+        // 6. 执行删除
+        int deleteCount = baseMapper.delete(new LambdaQueryWrapper<ContractLeaseTerms>()
                 .eq(ContractLeaseTerms::getTenantId, tenantId)
                 .eq(ContractLeaseTerms::getContractId, contractId)
-        ) > 0;
+        );
+
+        return deleteCount > 0;
     }
 
     // 批量查询：用于列表接口优化
