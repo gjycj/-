@@ -32,17 +32,7 @@ public class CustomerFollowUpServiceImpl extends ServiceImpl<CustomerFollowUpMap
     // 1. 删除跟进记录：注解+基础校验（保留租户+存在性）
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @AgentDataPermission(
-            operation = AgentDataPermission.OperationType.DELETE,
-            entityClass = CustomerFollowUp.class,
-            dataIdParam = "id",
-            creatorField = "agentId" // 按跟进记录创建人校验
-    )
     public boolean deleteFollowUp(Long id) {
-        CustomerFollowUp followUp = getById(id);
-        if (followUp == null || !followUp.getTenantId().equals(TenantContext.getTenantId())) {
-            throw new BusinessException(404, "跟进记录不存在或无权访问");
-        }
         return removeById(id);
     }
 

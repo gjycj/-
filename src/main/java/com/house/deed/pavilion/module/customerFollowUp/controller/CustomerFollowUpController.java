@@ -158,13 +158,6 @@ public class CustomerFollowUpController {
             throw new BusinessException(404, "客户不存在或无权访问");
         }
 
-        // （2）角色权限增强：管理员/店长可查看所有，普通经纪人仅看自己的（保留）
-        if (!RoleUtil.isAdmin() && !RoleUtil.isStoreManager()) {
-            if (customer.getCreateAgentId() == null || !customer.getCreateAgentId().equals(currentAgentId)) {
-                throw new BusinessException(403, "无权查看非本人创建的客户的跟进记录");
-            }
-        }
-
         // （3）调用Service带权限查询（自动过滤当前经纪人+租户，无需手动eq(AgentId)）
         Page<CustomerFollowUp> page = new Page<>(pageNum, pageSize);
         Page<CustomerFollowUp> resultPage = customerFollowUpService.getByCustomerId(page, customerId, tenantId);

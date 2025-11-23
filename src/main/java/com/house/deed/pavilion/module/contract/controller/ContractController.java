@@ -15,6 +15,7 @@ import com.house.deed.pavilion.module.houseHandover.service.IHouseHandoverServic
 import com.house.deed.pavilion.module.visitRecord.entity.VisitRecord;
 import com.house.deed.pavilion.module.visitRecord.service.IVisitRecordService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.annotation.Resource;
 import lombok.Getter;
 import lombok.Setter;
@@ -53,7 +54,8 @@ public class ContractController {
 
     @GetMapping("/detail/{id}")
     @Operation(summary = "查询合同详情（含关联附件）")
-    public ResultDTO<ContractDetailVO> getDetailWithAttachments(@PathVariable Long id) {
+    public ResultDTO<ContractDetailVO> getDetailWithAttachments(
+            @Parameter(description = "合同ID", required = true) @PathVariable Long id) {
         ContractDetailVO detailVO = contractService.getDetailWithAttachments(id);
         return ResultDTO.success(detailVO);
     }
@@ -62,7 +64,8 @@ public class ContractController {
      * 通过房源ID查询关联合同
      */
     @GetMapping("/by-house/{houseId}")
-    public ResultDTO<List<Contract>> getByHouseId(@PathVariable Long houseId) {
+    public ResultDTO<List<Contract>> getByHouseId(
+            @Parameter(description = "房源ID", required = true) @PathVariable Long houseId) {
         List<Contract> contracts = contractService.getByHouseId(houseId);
         return ResultDTO.success(contracts);
     }
@@ -71,7 +74,8 @@ public class ContractController {
      * 删除合同
      */
     @DeleteMapping("/{id}")
-    public ResultDTO<Boolean> deleteContract(@PathVariable Long id) {
+    public ResultDTO<Boolean> deleteContract(
+            @Parameter(description = "合同ID", required = true) @PathVariable Long id) {
         boolean success = contractService.removeContract(id);
         return ResultDTO.success(success);
     }
@@ -81,8 +85,8 @@ public class ContractController {
      */
     @PutMapping("/{id}")
     public ResultDTO<Boolean> updateContract(
-            @PathVariable Long id,
-            @RequestBody Contract contract) {
+            @Parameter(description = "合同ID", required = true) @PathVariable Long id,
+            @Parameter(description = "合同信息（不含状态字段）", required = true) @RequestBody Contract contract) {
         // 校验ID一致性
         if (!id.equals(contract.getId())) {
             throw new BusinessException(400, "路径ID与请求体ID不匹配");
@@ -95,7 +99,8 @@ public class ContractController {
      * 创建交易合同（自动校验房源和客户归属）
      */
     @PostMapping("/createContract")
-    public ResultDTO<Boolean> createContract(@RequestBody Contract contract) {
+    public ResultDTO<Boolean> createContract(
+            @Parameter(description = "合同信息", required = true) @RequestBody Contract contract) {
         // 校验必填字段
         if (contract.getHouseId() == null || contract.getCustomerId() == null) {
             throw new BusinessException(400, "房源ID和客户ID不能为空");
@@ -108,7 +113,8 @@ public class ContractController {
      * 查询合同详情（补充租户隔离）
      */
     @GetMapping("/{id}")
-    public ResultDTO<Contract> getContractById(@PathVariable Long id) {
+    public ResultDTO<Contract> getContractById(
+            @Parameter(description = "合同ID", required = true) @PathVariable Long id) {
         Long tenantId = TenantContext.getTenantId();
         Long currentAgentId = AgentContext.getAgentId();
 
@@ -123,10 +129,10 @@ public class ContractController {
         return ResultDTO.success(contract);
     }
 
-    // ContractController.java
     @GetMapping("/{contractId}/latest-checkout")
     @Operation(summary = "查询合同最新退租记录", description = "获取指定租赁合同的最新退租交接信息")
-    public ResultDTO<HouseHandover> getContractLatestCheckout(@PathVariable Long contractId) {
+    public ResultDTO<HouseHandover> getContractLatestCheckout(
+            @Parameter(description = "合同ID", required = true) @PathVariable Long contractId) {
         Contract contract = contractService.getById(contractId);
         if (contract == null) {
             throw new BusinessException(404, "合同不存在");
@@ -142,53 +148,83 @@ public class ContractController {
     }
 
     /**
-     * 更新合同状态为签约
+     * 更新合同状态（通用状态更新接口）
      */
     @PatchMapping("/{id}/status")
-    public ResultDTO<Boolean> signContract(@PathVariable Long id) {
-        // 1. 查询合同并校验状态
+    public ResultDTO<Boolean> updateContractStatus(
+            @Parameter(description = "合同ID", required = true) @PathVariable Long id,
+            @Parameter(description = "目标状态（SIGNED/EXECUTING/COMPLETED/TERMINATED）", required = true) @RequestParam String targetStatus) {
+        // 校验状态合法性
+        List<String> validStatus = List.of("SIGNED", "EXECUTING", "COMPLETED", "TERMINATED");
+        if (!validStatus.contains(targetStatus)) {
+            throw new BusinessException(400, "状态只能是SIGNED/EXECUTING/COMPLETED/TERMINATED");
+        }
+        // 调用服务层的状态更新方法（包含状态流转校验）
+        boolean success = contractService.updateContractStatus(id, targetStatus);
+        return ResultDTO.success(success);
+    }
+
+    /**
+     * 合同签约（专用接口，包含业绩生成逻辑）
+     */
+    @PatchMapping("/{id}/sign")  // 修正路径，避免与通用状态更新冲突
+    @Operation(summary = "合同签约", description = "更新合同状态为签约并生成对应业绩")
+    public ResultDTO<Boolean> signContract(
+            @Parameter(description = "合同ID", required = true) @PathVariable Long id) {
+        Long tenantId = TenantContext.getTenantId();
+        Long currentAgentId = AgentContext.getAgentId();
+
+        // 1. 查询合同并校验权限
         Contract contract = contractService.getById(id);
-        if (contract == null) {
-            throw new BusinessException(404, "合同不存在");
+        if (contract == null || !contract.getTenantId().equals(tenantId)) {
+            throw new BusinessException(404, "合同不存在或无权访问");
         }
-        if ("SIGNED".equals(contract.getStatus())) {
-            throw new BusinessException(400, "合同已签约");
-        }
-
-        // 2. 更新合同状态为签约
-        contract.setStatus("SIGNED");
-        boolean updated = contractService.updateById(contract);
-        if (!updated) {
-            throw new BusinessException(500, "合同状态更新失败");
+        if (!contract.getAgentId().equals(currentAgentId)) {
+            throw new BusinessException(403, "无权操作非本人签约的合同");
         }
 
-        // 3. 查询该合同关联的带看记录（取最新一条有效带看）
-        List<VisitRecord> visitRecords = visitRecordService.getByContractId(id, contract.getTenantId());
+        // 2. 调用服务层方法更新状态（触发状态流转校验）
+        boolean statusUpdated = contractService.updateContractStatus(id, "SIGNED");
+        if (!statusUpdated) {
+            throw new BusinessException(500, "合同签约状态更新失败");
+        }
+
+        // 3. 查询该合同关联的最新带看记录（明确排序）
+        List<VisitRecord> visitRecords = visitRecordService.getByContractId(id, tenantId);
         if (visitRecords.isEmpty()) {
             log.warn("合同{}签约但未找到关联带看记录，不生成业绩", id);
             return ResultDTO.success(true);
         }
-        VisitRecord latestVisit = visitRecords.get(0); // 假设按时间排序取最新
+        // 按带看时间倒序取最新一条
+        VisitRecord latestVisit = visitRecords.stream()
+                .max((v1, v2) -> v1.getVisitTime().compareTo(v2.getVisitTime()))
+                .orElseThrow(() -> new BusinessException(500, "获取最新带看记录失败"));
 
         // 4. 生成业绩（使用合同实际金额计算）
-        // 假设合同金额字段为dealAmount（万元），佣金比例为1%
-        BigDecimal dealAmount = contract.getAmount(); // 从合同中获取成交金额
-        BigDecimal commissionAmount = dealAmount.multiply(new BigDecimal("10000")) // 转换为元
-                .multiply(new BigDecimal("0.01")); // 1%佣金比例
+        BigDecimal dealAmount = contract.getAmount();
+        if (dealAmount == null) {
+            throw new BusinessException(400, "合同金额未设置，无法生成业绩");
+        }
+        // 佣金比例可考虑配置化，此处暂按1%处理
+        BigDecimal commissionAmount = dealAmount.multiply(new BigDecimal("10000"))  // 转换为元
+                .multiply(new BigDecimal("0.01"));  // 1%佣金比例
 
         agentPerformanceService.createPerformanceFromVisit(
                 latestVisit,
-                id, // 合同ID
-                dealAmount, // 成交金额（万元）
-                commissionAmount // 佣金金额（元）
+                id,  // 合同ID
+                dealAmount,  // 成交金额（万元）
+                commissionAmount  // 佣金金额（元）
         );
 
         return ResultDTO.success(true);
     }
 
-    // 新增：查询合同关联的带看记录（包含VisitRecord和CustomerFollowUp）
+    /**
+     * 查询合同关联的带看记录（包含VisitRecord和CustomerFollowUp）
+     */
     @GetMapping("/{contractId}/visit-records")
-    public ResultDTO<ContractVisitRecordsVO> getVisitRecordsByContractId(@PathVariable Long contractId) {
+    public ResultDTO<ContractVisitRecordsVO> getVisitRecordsByContractId(
+            @Parameter(description = "合同ID", required = true) @PathVariable Long contractId) {
         Contract contract = contractService.getById(contractId);
         if (contract == null) {
             throw new BusinessException(404, "合同不存在");
@@ -211,10 +247,8 @@ public class ContractController {
     @Setter
     @Getter
     public static class ContractVisitRecordsVO {
-        // getter/setter
         private Long contractId;
         private List<VisitRecord> visitRecords;
         private List<CustomerFollowUp> followUps;
-
     }
 }
