@@ -3,6 +3,9 @@ package com.house.deed.pavilion.module.electronicSign.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.house.deed.pavilion.module.electronicSign.entity.ElectronicSign;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * <p>
  * 电子签约信息表（租户级数据） 服务类
@@ -29,5 +32,19 @@ public interface IElectronicSignService extends IService<ElectronicSign> {
      * @return 更新后的状态
      */
     String updateSignStatus(Long signId, boolean customerSign, boolean landlordSign);
+
+    /**
+     * 新增：通过合同ID查询电子签记录（关联查询用）
+     * @param contractId 合同ID
+     * @return 电子签记录
+     */
+    ElectronicSign getByContractId(Long contractId);
+
+    /**
+     * 新增：批量通过合同ID查询电子签记录
+     * @param contractIds 合同ID列表
+     * @return 合同ID -> 电子签记录的映射
+     */
+    Map<Long, ElectronicSign> getBatchByContractIds(List<Long> contractIds);
 
 }

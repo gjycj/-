@@ -22,22 +22,22 @@ public class ContractLeaseTermsController {
     @Resource
     private IContractLeaseTermsService leaseTermsService;
 
-    /**
-     * 新增/更新租赁合同附加条款
-     */
+    // 新增/更新（已有）
     @PostMapping("/maintainOrUpdate")
     public ResultDTO<Boolean> saveOrUpdate(@RequestBody ContractLeaseTerms terms) {
-        boolean success = leaseTermsService.saveOrUpdateLeaseTerms(terms);
-        return ResultDTO.success(success);
+        return ResultDTO.success(leaseTermsService.saveOrUpdateLeaseTerms(terms));
     }
 
-    /**
-     * 查询合同附加条款
-     */
+    // 查询（已有）
     @GetMapping("/contract/{contractId}")
     public ResultDTO<ContractLeaseTerms> getByContractId(@PathVariable Long contractId) {
-        ContractLeaseTerms terms = leaseTermsService.getByContractId(contractId);
-        return ResultDTO.success(terms);
+        return ResultDTO.success(leaseTermsService.getByContractId(contractId));
+    }
+
+    // 新增：删除合同附加条款
+    @DeleteMapping("/contract/{contractId}")
+    public ResultDTO<Boolean> deleteByContractId(@PathVariable Long contractId) {
+        return ResultDTO.success(leaseTermsService.removeByContractId(contractId));
     }
 
 }
