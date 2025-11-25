@@ -1,6 +1,5 @@
 package com.house.deed.pavilion;
 
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -10,7 +9,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
   房源状态管理  客户跟进记录  带看-合同关联  合同状态流转  维修工单/投诉纠纷
 */
 @SpringBootApplication
-@MapperScan("com.house.deed.pavilion.module.**.mapper")
 public class HouseApplication {
 
     public static void main(String[] args) {
