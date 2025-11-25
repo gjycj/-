@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.house.deed.pavilion.mapper.FlywaySchemaHistoryMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.house.deed.pavilion.entity.FlywaySchemaHistory">
+        <id column="installed_rank" property="installedRank" />
+        <result column="version" property="version" />
+        <result column="description" property="description" />
+        <result column="type" property="type" />
+        <result column="script" property="script" />
+        <result column="checksum" property="checksum" />
+        <result column="installed_by" property="installedBy" />
+        <result column="installed_on" property="installedOn" />
+        <result column="execution_time" property="executionTime" />
+        <result column="success" property="success" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        installed_rank, version, description, type, script, checksum, installed_by, installed_on, execution_time, success
+    </sql>
+
+</mapper>
