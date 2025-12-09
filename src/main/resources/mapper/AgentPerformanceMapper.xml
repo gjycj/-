@@ -21,4 +21,37 @@
         id, tenant_id, agent_id, contract_id, performance_month, deal_amount, commission_amount, performance_status, settle_time, create_time
     </sql>
 
+    <!-- 按周期统计业绩总和 -->
+    <select id="sumPerformanceByCycle" resultType="java.util.Map">
+        SELECT
+        agent_id,
+        SUM(commission_amount) AS total_amount  -- 按佣金金额统计总和（单位：元）
+        FROM
+        agent_performance
+        WHERE
+        tenant_id = #{tenantId}
+        AND performance_status != 'CANCELED'  -- 排除已取消的业绩
+        <!-- 根据周期类型动态生成时间条件 -->
+        <choose>
+            <when test="cycleType == 'MONTH'">
+                AND performance_month = DATE_FORMAT(#{statisticDate}, '%Y%m')
+            </when>
+            <when test="cycleType == 'QUARTER'">
+                AND performance_month BETWEEN
+                DATE_FORMAT(#{statisticDate}, '%Y')
+                + LPAD(FLOOR((MONTH(#{statisticDate})-1)/3)*3 + 1, 2, '0')
+                AND
+                DATE_FORMAT(#{statisticDate}, '%Y')
+                + LPAD(FLOOR((MONTH(#{statisticDate})-1)/3)*3 + 3, 2, '0')
+            </when>
+            <when test="cycleType == 'YEAR'">
+                AND performance_month LIKE CONCAT(DATE_FORMAT(#{statisticDate}, '%Y'), '%')
+            </when>
+        </choose>
+        GROUP BY
+        agent_id
+        ORDER BY
+        total_amount DESC
+    </select>
+
 </mapper>

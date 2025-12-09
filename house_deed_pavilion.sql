@@ -11,7 +11,7 @@
  Target Server Version : 80044 (8.0.44)
  File Encoding         : 65001
 
- Date: 25/11/2025 05:57:14
+ Date: 07/12/2025 20:35:40
 */
 
 SET NAMES utf8mb4;
@@ -40,13 +40,7 @@ CREATE TABLE `agent`  (
   UNIQUE INDEX `uk_tenant_agent_code`(`tenant_id` ASC, `agent_code` ASC) USING BTREE COMMENT '租户内工号唯一',
   INDEX `idx_store`(`store_id` ASC) USING BTREE,
   INDEX `idx_tenant_status`(`tenant_id` ASC, `status` ASC) USING BTREE COMMENT '租户内按状态筛选经纪人'
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '经纪人信息表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of agent
--- ----------------------------
-INSERT INTO `agent` VALUES (1, 1, 1, 'A001', '张三', '13500135001', '110105199001011234', '经纪人', 'SENIOR', '2020-01-15', 1, '2025-11-13 04:00:28', '2025-11-13 04:00:28', 0);
-INSERT INTO `agent` VALUES (2, 1, 1, 'A002', '李四', '13600136002', '110105199203045678', '店长', 'STAR', '2018-05-20', 1, '2025-11-13 04:00:28', '2025-11-13 04:00:28', 0);
+) ENGINE = InnoDB AUTO_INCREMENT = 53 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '经纪人信息表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for agent_backup
@@ -72,10 +66,6 @@ CREATE TABLE `agent_backup`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '经纪人删除备份表（租户级存档）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of agent_backup
--- ----------------------------
-
--- ----------------------------
 -- Table structure for agent_performance
 -- ----------------------------
 DROP TABLE IF EXISTS `agent_performance`;
@@ -97,11 +87,6 @@ CREATE TABLE `agent_performance`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '经纪人业绩记录表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of agent_performance
--- ----------------------------
-INSERT INTO `agent_performance` VALUES (1, 1, 1, 1, '202310', 760.00, 95000.00, 'UNSETTLED', NULL, '2025-11-13 04:00:28');
-
--- ----------------------------
 -- Table structure for building
 -- ----------------------------
 DROP TABLE IF EXISTS `building`;
@@ -121,13 +106,6 @@ CREATE TABLE `building`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '楼栋信息表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of building
--- ----------------------------
-INSERT INTO `building` VALUES (1, 1, 1, '1号楼', 2, 30, '板楼', '2025-11-13 04:00:28', 0);
-INSERT INTO `building` VALUES (2, 1, 1, '2号楼', 2, 30, '板楼', '2025-11-13 04:00:28', 0);
-INSERT INTO `building` VALUES (3, 1, 2, '3号楼', 3, 25, '塔楼', '2025-11-13 04:00:28', 0);
-
--- ----------------------------
 -- Table structure for commission_rule
 -- ----------------------------
 DROP TABLE IF EXISTS `commission_rule`;
@@ -145,10 +123,6 @@ CREATE TABLE `commission_rule`  (
   INDEX `idx_tenant_applicable_type`(`tenant_id` ASC, `applicable_type` ASC) USING BTREE COMMENT '租户内按适用类型查询规则',
   INDEX `idx_status`(`status` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '佣金计算规则表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of commission_rule
--- ----------------------------
 
 -- ----------------------------
 -- Table structure for complaint_dispute
@@ -174,10 +148,6 @@ CREATE TABLE `complaint_dispute`  (
   INDEX `idx_related_contract`(`related_contract_id` ASC) USING BTREE,
   INDEX `idx_tenant_status`(`tenant_id` ASC, `status` ASC) USING BTREE COMMENT '租户内按状态查询纠纷'
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '投诉与纠纷记录表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of complaint_dispute
--- ----------------------------
 
 -- ----------------------------
 -- Table structure for contract
@@ -209,13 +179,7 @@ CREATE TABLE `contract`  (
   INDEX `idx_tenant_sign_time`(`tenant_id` ASC, `sign_time` ASC) USING BTREE COMMENT '租户内按签约时间查询',
   INDEX `idx_customer`(`customer_id` ASC) USING BTREE COMMENT '按客户ID查询合同',
   INDEX `idx_tenant_customer`(`tenant_id` ASC, `customer_id` ASC) USING BTREE COMMENT '租户内按客户查询合同'
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '交易合同表（租户核心业务数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of contract
--- ----------------------------
-INSERT INTO `contract` VALUES (1, 1, 'HT20231010001', 1, 1, 1, 1, 'SALE', 760.00, 50.00, '按揭', '2023-10-10 10:00:00', NULL, NULL, 'SIGNED', '客户首付30%，贷款70%', '2025-11-13 04:00:28', '2025-11-13 04:00:28', 0);
-INSERT INTO `contract` VALUES (2, 1, 'HT20231015001', 2, 2, 2, 2, 'RENT', 0.05, 0.10, '月付', '2023-10-15 14:00:00', NULL, NULL, 'SIGNED', '租期1年，押二付一', '2025-11-13 04:00:28', '2025-11-13 04:00:28', 0);
+) ENGINE = InnoDB AUTO_INCREMENT = 222 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '交易合同表（租户核心业务数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for contract_attachment
@@ -236,12 +200,6 @@ CREATE TABLE `contract_attachment`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '合同附件表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of contract_attachment
--- ----------------------------
-INSERT INTO `contract_attachment` VALUES (1, 1, 1, 'ID_CARD', 'https://attach.example.com/contract/1/idcard_customer.jpg', '客户身份证', '2025-11-13 04:00:28', 1);
-INSERT INTO `contract_attachment` VALUES (2, 1, 1, 'PROPERTY_CERT', 'https://attach.example.com/contract/1/property.jpg', '房产证', '2025-11-13 04:00:28', 1);
-
--- ----------------------------
 -- Table structure for contract_lease_terms
 -- ----------------------------
 DROP TABLE IF EXISTS `contract_lease_terms`;
@@ -258,11 +216,6 @@ CREATE TABLE `contract_lease_terms`  (
   UNIQUE INDEX `uk_contract`(`contract_id` ASC) USING BTREE,
   INDEX `idx_tenant_contract`(`tenant_id` ASC, `contract_id` ASC) USING BTREE COMMENT '租户内查询租赁条款'
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '租赁合同附加条款表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of contract_lease_terms
--- ----------------------------
-INSERT INTO `contract_lease_terms` VALUES (1, 1, 2, 0, 0, '物业费房东承担，水电费租户承担', '自然损坏房东负责维修', '2025-11-13 04:00:28');
 
 -- ----------------------------
 -- Table structure for customer
@@ -290,13 +243,7 @@ CREATE TABLE `customer`  (
   INDEX `idx_intended_region`(`intended_region_id` ASC) USING BTREE,
   INDEX `idx_customer_type_potential`(`customer_type` ASC, `potential_level` ASC) USING BTREE COMMENT '租户内筛选重点客户',
   INDEX `idx_tenant_creator`(`tenant_id` ASC, `create_agent_id` ASC) USING BTREE COMMENT '租户内按创建人筛选客户'
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户信息表（租户级数据隔离）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of customer
--- ----------------------------
-INSERT INTO `customer` VALUES (1, 1, '王五', '13700137003', '110106198805067890', '线上', 3, 500.00, 800.00, '三居室', 'ORDINARY', 3, 'ACTIVE', 1, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-INSERT INTO `customer` VALUES (2, 1, '赵六', '13800138004', '110107199507081234', '转介绍', 3, 800.00, 1200.00, '四居室', 'VIP', 3, 'ACTIVE', 1, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
+) ENGINE = InnoDB AUTO_INCREMENT = 236 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户信息表（租户级数据隔离）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for customer_backup
@@ -325,10 +272,6 @@ CREATE TABLE `customer_backup`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户删除备份表（租户级存档）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of customer_backup
--- ----------------------------
-
--- ----------------------------
 -- Table structure for customer_follow_up
 -- ----------------------------
 DROP TABLE IF EXISTS `customer_follow_up`;
@@ -354,12 +297,6 @@ CREATE TABLE `customer_follow_up`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户跟进记录表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of customer_follow_up
--- ----------------------------
-INSERT INTO `customer_follow_up` VALUES (1, 1, 1, 1, 0, '2023-10-01 14:30:00', '带看了3套房源，客户对阳光小区1号楼101较满意', NULL, '2023-10-05再次带看', '2025-11-13 04:00:28', NULL);
-INSERT INTO `customer_follow_up` VALUES (2, 1, 1, 1, 0, '2023-10-05 10:15:00', '客户希望价格能谈到750万', '价格上限从800万调整为780万', '2023-10-08与房东沟通', '2025-11-13 04:00:28', NULL);
-
--- ----------------------------
 -- Table structure for customer_history_deal
 -- ----------------------------
 DROP TABLE IF EXISTS `customer_history_deal`;
@@ -376,12 +313,7 @@ CREATE TABLE `customer_history_deal`  (
   UNIQUE INDEX `uk_customer_contract`(`customer_id` ASC, `contract_id` ASC) USING BTREE COMMENT '客户-合同关联唯一',
   INDEX `idx_customer`(`customer_id` ASC) USING BTREE,
   INDEX `idx_tenant_deal_time`(`tenant_id` ASC, `deal_time` ASC) USING BTREE COMMENT '租户内按时间统计成交'
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户历史成交记录表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of customer_history_deal
--- ----------------------------
-INSERT INTO `customer_history_deal` VALUES (1, 1, 1, 1, '2023-10-10', '阳光小区1号楼1单元101室（三居室）', 'SALE', '2025-11-13 04:00:28');
+) ENGINE = InnoDB AUTO_INCREMENT = 78 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '客户历史成交记录表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for dispute_handle_log
@@ -401,11 +333,7 @@ CREATE TABLE `dispute_handle_log`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_dispute`(`dispute_id` ASC) USING BTREE,
   INDEX `idx_tenant_handle_time`(`tenant_id` ASC, `handle_time` ASC) USING BTREE COMMENT '租户内按处理时间查询'
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '纠纷处理日志表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of dispute_handle_log
--- ----------------------------
+) ENGINE = InnoDB AUTO_INCREMENT = 170 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '纠纷处理日志表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for electronic_sign
@@ -427,12 +355,7 @@ CREATE TABLE `electronic_sign`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_contract`(`contract_id` ASC) USING BTREE,
   INDEX `idx_tenant_sign_status`(`tenant_id` ASC, `sign_status` ASC) USING BTREE COMMENT '租户内按签约状态查询'
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '电子签约信息表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of electronic_sign
--- ----------------------------
-INSERT INTO `electronic_sign` VALUES (1, 1, 1, 'e签宝', 'https://esign.example.com/contract/1', 'SIGNED', '2023-10-10 10:10:00', '2023-10-10 10:15:00', NULL, 'https://pdf.example.com/contract/1.pdf', '2025-11-13 04:00:28', '2025-11-13 04:00:28');
+) ENGINE = InnoDB AUTO_INCREMENT = 114 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '电子签约信息表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for flyway_schema_history
@@ -452,11 +375,6 @@ CREATE TABLE `flyway_schema_history`  (
   PRIMARY KEY (`installed_rank`) USING BTREE,
   INDEX `flyway_schema_history_s_idx`(`success` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of flyway_schema_history
--- ----------------------------
-INSERT INTO `flyway_schema_history` VALUES (1, '1', '<< Flyway Baseline >>', 'BASELINE', '<< Flyway Baseline >>', NULL, 'root', '2025-11-11 14:22:05', 0, 1);
 
 -- ----------------------------
 -- Table structure for house
@@ -491,14 +409,7 @@ CREATE TABLE `house`  (
   INDEX `idx_status_transaction`(`status` ASC, `transaction_type` ASC) USING BTREE,
   INDEX `idx_price`(`price` ASC) USING BTREE,
   INDEX `idx_tenant_create_agent`(`tenant_id` ASC, `create_agent_id` ASC) USING BTREE COMMENT '租户内按经纪人查询房源'
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源信息表（租户核心数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of house
--- ----------------------------
-INSERT INTO `house` VALUES (1, 2, 1, '1单元101室', '三居室', 120.50, 100.20, 10, 30, '南北通透', '精装', '商品房', NULL, NULL, NULL, NULL, 780.00, 'SALE', 'ON_SALE', '中间楼层，采光好，满五唯一', 1, '2025-11-13 04:00:28', '2025-11-13 05:52:23');
-INSERT INTO `house` VALUES (2, 1, 1, '2单元202室', '两居室', 90.30, 75.10, 20, 30, '南向', '简装', '商品房', NULL, NULL, NULL, NULL, 550.00, 'SALE', 'ON_SALE', '视野开阔，临近小区花园', 2, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-INSERT INTO `house` VALUES (5, 1, 1, '1单元301', '3室2厅1卫', 120.50, 105.30, 15, 34, '南北通透', '精装', '商品房', '京房权证海字第123456号', 70, 'NONE', '招商银行，抵押金额50万元', 580.00, 'SALE', 'ON_SALE', '临近地铁10号线，小区绿化率30%，周边有三甲医院', 3001, '2025-11-14 09:13:49', '2025-11-18 08:00:38');
+) ENGINE = InnoDB AUTO_INCREMENT = 483 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源信息表（租户核心数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for house_backup
@@ -531,11 +442,7 @@ CREATE TABLE `house_backup`  (
   `delete_operator` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '删除人',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_tenant_original_id`(`tenant_id` ASC, `original_id` ASC) USING BTREE COMMENT '租户内按原ID查询备份'
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源删除备份表（租户级存档）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of house_backup
--- ----------------------------
+) ENGINE = InnoDB AUTO_INCREMENT = 46 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源删除备份表（租户级存档）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for house_handover
@@ -566,12 +473,7 @@ CREATE TABLE `house_handover`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_contract`(`contract_id` ASC) USING BTREE,
   INDEX `idx_tenant_handover_time`(`tenant_id` ASC, `handover_time` ASC) USING BTREE COMMENT '租户内按交接时间查询'
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房屋交接记录表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of house_handover
--- ----------------------------
-INSERT INTO `house_handover` VALUES (1, 1, 2, 2, 'CHECK_IN', '2023-10-20 09:30:00', 'UNSETTLED', '{\"冰箱\": \"海尔\", \"空调\": 2, \"洗衣机\": \"美的\"}', 120.50, 350.20, 50.80, NULL, '周八', '赵六', NULL, 'DRAFT', '2025-11-13 04:00:28', NULL, NULL, NULL, NULL);
+) ENGINE = InnoDB AUTO_INCREMENT = 129 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房屋交接记录表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for house_image
@@ -591,15 +493,6 @@ CREATE TABLE `house_image`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源图片表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of house_image
--- ----------------------------
-INSERT INTO `house_image` VALUES (1, 1, 1, 'https://example.com/house/1/cover.jpg', 'COVER', 1, '2025-11-13 04:00:28');
-INSERT INTO `house_image` VALUES (2, 1, 1, 'https://example.com/house/1/living.jpg', 'LIVING_ROOM', 2, '2025-11-13 04:00:28');
-INSERT INTO `house_image` VALUES (3, 1, 2, 'https://example.com/house/2/cover.jpg', 'COVER', 1, '2025-11-13 04:00:28');
-INSERT INTO `house_image` VALUES (8, 1, 5, 'https://example.com/house/cover/123.jpg', 'COVER', 0, '2025-11-14 09:13:45');
-INSERT INTO `house_image` VALUES (9, 1, 5, 'https://example.com/house/living/123.jpg', 'LIVING_ROOM', 1, '2025-11-14 09:13:45');
-
--- ----------------------------
 -- Table structure for house_landlord
 -- ----------------------------
 DROP TABLE IF EXISTS `house_landlord`;
@@ -614,13 +507,6 @@ CREATE TABLE `house_landlord`  (
   UNIQUE INDEX `uk_house_landlord`(`house_id` ASC, `landlord_id` ASC) USING BTREE COMMENT '房源-房东关联唯一',
   INDEX `idx_tenant_house`(`tenant_id` ASC, `house_id` ASC) USING BTREE COMMENT '租户内查询房源所属房东'
 ) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源与房东关联表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of house_landlord
--- ----------------------------
-INSERT INTO `house_landlord` VALUES (1, 1, 1, 1, '100%', '2025-11-13 04:00:28');
-INSERT INTO `house_landlord` VALUES (2, 1, 2, 2, '100%', '2025-11-13 04:00:28');
-INSERT INTO `house_landlord` VALUES (5, 1, 5, 1, '100%', '2025-11-14 09:13:45');
 
 -- ----------------------------
 -- Table structure for house_maintain_plan
@@ -644,10 +530,6 @@ CREATE TABLE `house_maintain_plan`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源维护计划表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of house_maintain_plan
--- ----------------------------
-
--- ----------------------------
 -- Table structure for house_price_log
 -- ----------------------------
 DROP TABLE IF EXISTS `house_price_log`;
@@ -665,10 +547,6 @@ CREATE TABLE `house_price_log`  (
   INDEX `idx_house`(`house_id` ASC) USING BTREE,
   INDEX `idx_tenant_create_time`(`tenant_id` ASC, `create_time` ASC) USING BTREE COMMENT '租户内按时间查询调价记录'
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源价格变动记录表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of house_price_log
--- ----------------------------
 
 -- ----------------------------
 -- Table structure for house_status_log
@@ -690,11 +568,6 @@ CREATE TABLE `house_status_log`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源状态变更日志表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of house_status_log
--- ----------------------------
-INSERT INTO `house_status_log` VALUES (1, 1, 5, NULL, 'ON_SALE', '初始录入', 1, '张三', '2025-11-14 09:13:45');
-
--- ----------------------------
 -- Table structure for house_tag
 -- ----------------------------
 DROP TABLE IF EXISTS `house_tag`;
@@ -709,15 +582,6 @@ CREATE TABLE `house_tag`  (
   INDEX `idx_tenant_tag`(`tenant_id` ASC, `tag_id` ASC) USING BTREE COMMENT '租户内按标签查询房源',
   INDEX `idx_tenant_house`(`tenant_id` ASC, `house_id` ASC) USING BTREE COMMENT '租户内按房源查询关联标签'
 ) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源与标签关联表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of house_tag
--- ----------------------------
-INSERT INTO `house_tag` VALUES (1, 1, 1, 1, '2025-11-13 04:00:28');
-INSERT INTO `house_tag` VALUES (2, 1, 1, 2, '2025-11-13 04:00:28');
-INSERT INTO `house_tag` VALUES (3, 1, 2, 3, '2025-11-13 04:00:28');
-INSERT INTO `house_tag` VALUES (8, 1, 5, 1, '2025-11-14 09:13:45');
-INSERT INTO `house_tag` VALUES (9, 1, 5, 2, '2025-11-14 09:13:45');
 
 -- ----------------------------
 -- Table structure for landlord
@@ -737,12 +601,6 @@ CREATE TABLE `landlord`  (
   INDEX `idx_tenant_phone`(`tenant_id` ASC, `phone` ASC) USING BTREE COMMENT '租户内按电话查询房东',
   INDEX `idx_create_agent`(`create_agent_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房东信息表（租户级数据隔离）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of landlord
--- ----------------------------
-INSERT INTO `landlord` VALUES (1, 1, '孙七', '13900139005', '110105197509104567', '北京市朝阳区望京新城', 1, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-INSERT INTO `landlord` VALUES (2, 1, '周八', '13000130006', '110105198011127890', '北京市朝阳区南湖东园', 2, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
 
 -- ----------------------------
 -- Table structure for landlord_entrust
@@ -768,12 +626,6 @@ CREATE TABLE `landlord_entrust`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房东委托信息表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of landlord_entrust
--- ----------------------------
-INSERT INTO `landlord_entrust` VALUES (1, 1, 1, 1, 'EXCLUSIVE', '2023-09-01', '2024-03-01', 1, '独家委托，可议价5%', 1, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-INSERT INTO `landlord_entrust` VALUES (2, 1, 2, 2, 'NON_EXCLUSIVE', '2023-08-15', '2024-02-15', 1, '多渠道委托', 1, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-
--- ----------------------------
 -- Table structure for loan_info
 -- ----------------------------
 DROP TABLE IF EXISTS `loan_info`;
@@ -797,11 +649,6 @@ CREATE TABLE `loan_info`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '贷款信息表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of loan_info
--- ----------------------------
-INSERT INTO `loan_info` VALUES (1, 1, 1, '中国银行', 532.00, 360, 0.0410, 'COMMERCIAL', '2023-10-11 09:00:00', '2023-10-20 16:00:00', 'APPROVED', '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-
--- ----------------------------
 -- Table structure for loan_material
 -- ----------------------------
 DROP TABLE IF EXISTS `loan_material`;
@@ -819,10 +666,6 @@ CREATE TABLE `loan_material`  (
   UNIQUE INDEX `uk_loan_material_type`(`loan_id` ASC, `material_type` ASC) USING BTREE COMMENT '贷款-材料类型唯一',
   INDEX `idx_tenant_status`(`tenant_id` ASC, `status` ASC) USING BTREE COMMENT '租户内按材料状态查询'
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '贷款材料提交记录表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of loan_material
--- ----------------------------
 
 -- ----------------------------
 -- Table structure for maintenance_order
@@ -861,11 +704,6 @@ CREATE TABLE `maintenance_order`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '房源维修工单表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of maintenance_order
--- ----------------------------
-INSERT INTO `maintenance_order` VALUES (1, 1, 2, NULL, NULL, 'TENANT1_MAINT20251115001', 'TENANT', 30001, '13800138000', 'APPLIANCE', '客厅空调运行时不制冷，外机有异响', 2, 1, 'SUBMITTED', '2025-11-15 05:54:39', NULL, 150.50, 'LANDLORD', '更换空调压缩机，故障排除', '2025-11-15 13:59:12', '2025-11-15 13:59:12');
-
--- ----------------------------
 -- Table structure for operation_log
 -- ----------------------------
 DROP TABLE IF EXISTS `operation_log`;
@@ -883,11 +721,6 @@ CREATE TABLE `operation_log`  (
   INDEX `idx_module_time`(`module` ASC, `create_time` ASC) USING BTREE,
   INDEX `idx_tenant_operator`(`tenant_id` ASC, `operator_id` ASC) USING BTREE COMMENT '租户内按操作人查询日志'
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '系统操作日志表（租户级审计）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of operation_log
--- ----------------------------
-INSERT INTO `operation_log` VALUES (3, 1, 'HOUSE_MANAGE', 'ADD', '录入房源：房号=2单元502，楼盘=阳光小区，挂牌价=680.50万元', 1, '张三', '127.0.0.1', '2025-11-14 09:13:45');
 
 -- ----------------------------
 -- Table structure for property
@@ -912,12 +745,6 @@ CREATE TABLE `property`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '楼盘信息表（租户级数据隔离）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of property
--- ----------------------------
-INSERT INTO `property` VALUES (1, 1, '阳光小区', 3, '北京市朝阳区望京街1号', '北京阳光地产', 35.50, 2010, '阳光物业', '2025-11-13 04:00:28', '2025-11-13 04:00:28', 0);
-INSERT INTO `property` VALUES (2, 1, '望京新城', 3, '北京市朝阳区望京街10号', '北京望京开发', 30.00, 2005, '新城物业', '2025-11-13 04:00:28', '2025-11-13 04:00:28', 0);
-
--- ----------------------------
 -- Table structure for region
 -- ----------------------------
 DROP TABLE IF EXISTS `region`;
@@ -934,14 +761,6 @@ CREATE TABLE `region`  (
   INDEX `idx_tenant_parent`(`tenant_id` ASC, `parent_id` ASC) USING BTREE COMMENT '租户内按父级查询区域',
   INDEX `idx_region_code`(`tenant_id` ASC, `region_code` ASC) USING BTREE COMMENT '租户内按行政编码查询'
 ) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '区域管理表（租户级数据隔离）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of region
--- ----------------------------
-INSERT INTO `region` VALUES (1, 1, 0, '北京市', 1, '110000', 1, '2025-11-13 04:00:28');
-INSERT INTO `region` VALUES (2, 1, 1, '朝阳区', 2, '110105', 1, '2025-11-13 04:00:28');
-INSERT INTO `region` VALUES (3, 1, 2, '望京街道', 3, '110105014', 1, '2025-11-13 04:00:28');
-INSERT INTO `region` VALUES (4, 2, 0, '上海市', 1, '310000', 1, '2025-11-13 04:00:28');
 
 -- ----------------------------
 -- Table structure for store
@@ -966,13 +785,6 @@ CREATE TABLE `store`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '门店信息表（租户级数据）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of store
--- ----------------------------
-INSERT INTO `store` VALUES (1, 1, 'S001', '望京旗舰店', 3, '北京市朝阳区望京SOHO T3', 2, '010-88888888', 0, '2025-11-13 04:00:28', '2025-11-15 13:37:36');
-INSERT INTO `store` VALUES (2, 1, 'S002', '国贸店', 2, '北京市朝阳区国贸大厦B座', NULL, '010-99999999', 1, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-INSERT INTO `store` VALUES (3, 1, 'STORE001', '幸福家园中介朝阳路店', 1, '北京市朝阳区朝阳路88号1层', 1, '010-12345678', 1, '2025-11-15 12:00:36', '2025-11-15 12:02:23');
-
--- ----------------------------
 -- Table structure for tag
 -- ----------------------------
 DROP TABLE IF EXISTS `tag`;
@@ -986,13 +798,6 @@ CREATE TABLE `tag`  (
   UNIQUE INDEX `uk_tenant_tag`(`tenant_id` ASC, `tag_name` ASC, `tag_type` ASC) USING BTREE COMMENT '租户内标签名称+类型唯一',
   INDEX `idx_tenant_type`(`tenant_id` ASC, `tag_type` ASC) USING BTREE COMMENT '租户内按类型查询标签'
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '标签表（租户级数据隔离）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of tag
--- ----------------------------
-INSERT INTO `tag` VALUES (1, 1, '学区房', '房源标签', '2025-11-13 04:00:28');
-INSERT INTO `tag` VALUES (2, 1, '近地铁', '房源标签', '2025-11-13 04:00:28');
-INSERT INTO `tag` VALUES (3, 1, '急售', '房源标签', '2025-11-13 04:00:28');
 
 -- ----------------------------
 -- Table structure for tenant
@@ -1016,12 +821,6 @@ CREATE TABLE `tenant`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '多租户核心信息表（租户隔离根表）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of tenant
--- ----------------------------
-INSERT INTO `tenant` VALUES (1, 'T001', '链家地产', '张经理', '13800138000', 'lianjia.example.com', NULL, 1, NULL, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-INSERT INTO `tenant` VALUES (2, 'T002', '我爱我家', '李总监', '13900139000', '5i5j.example.com', NULL, 1, NULL, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-
--- ----------------------------
 -- Table structure for tenant_config
 -- ----------------------------
 DROP TABLE IF EXISTS `tenant_config`;
@@ -1038,13 +837,6 @@ CREATE TABLE `tenant_config`  (
   UNIQUE INDEX `uk_tenant_config_key`(`tenant_id` ASC, `config_key` ASC) USING BTREE COMMENT '租户内配置键唯一',
   INDEX `idx_tenant`(`tenant_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '租户个性化配置表' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of tenant_config
--- ----------------------------
-INSERT INTO `tenant_config` VALUES (1, 1, 'COMMISSION_RATE', '2.5%', '中介佣金比例', 0, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-INSERT INTO `tenant_config` VALUES (2, 1, 'MAX_HOUSE_NUM', '5000', '最大房源数量限制', 1, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
-INSERT INTO `tenant_config` VALUES (3, 2, 'COMMISSION_RATE', '2%', '中介佣金比例', 0, '2025-11-13 04:00:28', '2025-11-13 04:00:28');
 
 -- ----------------------------
 -- Table structure for transaction_fee
@@ -1065,12 +857,6 @@ CREATE TABLE `transaction_fee`  (
   INDEX `idx_contract`(`contract_id` ASC) USING BTREE,
   INDEX `idx_tenant_payment_status`(`tenant_id` ASC, `payment_status` ASC) USING BTREE COMMENT '租户内按支付状态查询'
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '交易费用明细表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of transaction_fee
--- ----------------------------
-INSERT INTO `transaction_fee` VALUES (1, 1, 1, 'AGENCY_FEE', 190000.00, 'CUSTOMER', 'PAID', '2023-10-10 11:00:00', NULL, '2025-11-13 04:00:28');
-INSERT INTO `transaction_fee` VALUES (2, 1, 1, 'TAX', 380000.00, 'CUSTOMER', 'PAID', '2023-10-12 15:00:00', NULL, '2025-11-13 04:00:28');
 
 -- ----------------------------
 -- Table structure for visit_record
@@ -1096,11 +882,5 @@ CREATE TABLE `visit_record`  (
   INDEX `idx_contract`(`contract_id` ASC) USING BTREE,
   INDEX `idx_tenant_customer`(`tenant_id` ASC, `customer_id` ASC) USING BTREE COMMENT '租户+客户ID查询带看记录'
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '带看记录表（租户级数据）' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of visit_record
--- ----------------------------
-INSERT INTO `visit_record` VALUES (1, 1, 1, 1, 1, '2023-10-01 15:00:00', '线下', '户型满意，价格偏高', 3, '2025-11-13 04:00:28', NULL);
-INSERT INTO `visit_record` VALUES (2, 1, 2, 1, 1, '2023-10-01 16:30:00', '线下', '面积偏小，不考虑', 1, '2025-11-13 04:00:28', NULL);
 
 SET FOREIGN_KEY_CHECKS = 1;

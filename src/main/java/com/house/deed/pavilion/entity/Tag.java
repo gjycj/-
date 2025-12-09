@@ -20,15 +20,15 @@ import java.time.LocalDateTime;
  * 标签表（租户级数据隔离）
  * <p>
  * 核心业务说明：
- * 1. 多场景分类：存储租户内通用标签（房源标签/客户标签），用于对房源、客户进行分类标记，支撑精准筛选（如“学区房”“刚需客户”）；
+ * 1. 多场景分类：存储租户内通用标签（房源标签/客户标签），用于对房源、客户进行分类标记，支撑精准筛选（如"学区房""刚需客户"）；
  * 2. 租户隔离：所有字段绑定tenant_id，仅当前租户可查询/操作自身标签数据，保护标签分类的独立性；
  * 3. 核心关联：
- *    - 房源关联：通过house_tag关联表实现“一个标签多个房源”的多对多关系；
- *    - 客户关联：可通过customer_tag关联表（扩展）实现“一个标签多个客户”的多对多关系；
+ *    - 房源关联：通过house_tag关联表实现"一个标签多个房源"的多对多关系；
+ *    - 客户关联：可通过customer_tag关联表（扩展）实现"一个标签多个客户"的多对多关系；
  * 4. 关键约束：
  *    - 标签名称：tenant_id + tag_name 组合唯一（租户内标签名称不重复，避免分类混乱）；
  *    - 标签类型：区分标签适用场景（房源/客户），确保标签与关联对象类型匹配；
- * 5. 业务价值：标签化管理降低数据分类复杂度，提升筛选效率（如筛选“近地铁+学区房”的房源、“刚需+首套房”的客户）。
+ * 5. 业务价值：标签化管理降低数据分类复杂度，提升筛选效率（如筛选"近地铁+学区房"的房源、"刚需+首套房"的客户）。
  * </p>
  *
  * @author yuquanxi
@@ -78,16 +78,16 @@ public class Tag implements Serializable {
 
     /**
      * 标签名称
-     * 标签展示名称（如学区房、近地铁、刚需客户、首套房），非空，长度≤30字符，租户内唯一
+     * 标签展示名称（如学区房、近地铁、刚需客户、首套房），非空，长度≤50字符，租户内唯一
      */
     @Schema(
             description = "标签名称（如学区房、近地铁、刚需客户），租户内唯一",
             example = "学区房",
             nullable = false,
-            maxLength = 30
+            maxLength = 50
     )
     @NotBlank(message = "标签名称不能为空")
-    @Size(max = 30, message = "标签名称长度不能超过30字符")
+    @Size(max = 50, message = "标签名称长度不能超过50字符")
     @TableField(value = "tag_name")
     private String tagName;
 
@@ -106,6 +106,20 @@ public class Tag implements Serializable {
     private String tagType;
 
     /**
+     * 标签描述
+     * 标签的详细说明，可选字段，长度≤200字符
+     */
+    @Schema(
+            description = "标签描述（详细说明，可选）",
+            example = "位于优质学区内的房源标签",
+            nullable = true,
+            maxLength = 200
+    )
+    @Size(max = 200, message = "标签描述长度不能超过200字符")
+    @TableField(value = "description")
+    private String description;
+
+    /**
      * 创建时间
      * 标签创建时间，数据库自动填充，无需手动传值，只读
      */
@@ -118,4 +132,18 @@ public class Tag implements Serializable {
     )
     @TableField(value = "create_time", fill = FieldFill.INSERT) // 声明新增时自动填充
     private LocalDateTime createTime;
+
+    /**
+     * 更新时间
+     * 标签最后修改时间，数据库自动填充，无需手动传值，只读
+     */
+    @Schema(
+            description = "标签更新时间（数据库自动填充）",
+            example = "2025-11-26 15:30:00",
+            nullable = true,
+            accessMode = Schema.AccessMode.READ_ONLY,
+            format = "date-time"
+    )
+    @TableField(value = "update_time", fill = FieldFill.UPDATE) // 声明更新时自动填充
+    private LocalDateTime updateTime;
 }

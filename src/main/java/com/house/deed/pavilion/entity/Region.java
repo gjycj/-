@@ -19,6 +19,7 @@ import lombok.Setter;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 区域管理表（租户级数据隔离 + 树形层级结构）
@@ -166,4 +167,10 @@ public class Region implements Serializable {
     )
     @TableField(value = "create_time", fill = FieldFill.INSERT) // 声明新增时自动填充
     private LocalDateTime createTime;
+
+    /**
+     * 子区域列表（用于树形结构展示，非数据库字段）
+     */
+    @TableField(exist = false)
+    private List<Region> children;
 }
